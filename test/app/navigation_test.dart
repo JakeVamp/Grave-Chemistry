@@ -1,35 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grave_chemistry/app/app.dart';
+
+import '../helpers/fake_auth_repository.dart';
+import '../helpers/pump_app.dart';
 
 void main() {
-  Future<void> pumpApp(WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: GraveChemistryApp()));
-    await tester.pumpAndSettle();
-  }
-
-  testWidgets('home screen lists every placeholder destination', (
-    tester,
-  ) async {
-    await pumpApp(tester);
-
-    expect(find.text('Grave Chemistry'), findsOneWidget);
-    for (final label in [
-      'Authentication',
-      'Profile setup',
-      'Discovery',
-      'Matches',
-      'Messages',
-      'Settings',
-    ]) {
-      await tester.scrollUntilVisible(find.text(label), 100);
-      expect(find.text(label), findsOneWidget);
-    }
-  });
+  Future<void> pumpSignedIn(WidgetTester tester) =>
+      pumpApp(tester, FakeAuthRepository(currentUser: testUser));
 
   const destinations = {
-    'Authentication': 'Authentication is not built yet.',
     'Profile setup': 'Profile setup is not built yet.',
     'Discovery': 'Discovery is not built yet.',
     'Matches': 'Matches are not built yet.',
@@ -37,17 +16,25 @@ void main() {
     'Settings': 'Settings are not built yet.',
   };
 
+  testWidgets('home screen lists every placeholder destination', (
+    tester,
+  ) async {
+    await pumpSignedIn(tester);
+
+    expect(find.text('Grave Chemistry'), findsOneWidget);
+    for (final label in destinations.keys) {
+      expect(find.text(label), findsOneWidget);
+    }
+  });
+
   for (final MapEntry(key: label, value: message) in destinations.entries) {
     testWidgets('navigates to $label and back', (tester) async {
-      await pumpApp(tester);
+      await pumpSignedIn(tester);
 
-      await tester.scrollUntilVisible(find.text(label), 100);
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
+      await tester.tapAndSettle(find.text(label));
       expect(find.text(message), findsOneWidget);
 
-      await tester.tap(find.byType(BackButton));
-      await tester.pumpAndSettle();
+      await tester.tapAndSettle(find.byType(BackButton));
       expect(find.text('Foundation build'), findsOneWidget);
     });
   }

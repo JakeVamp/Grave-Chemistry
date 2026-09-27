@@ -7,58 +7,51 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/widgets/loading_button.dart';
 import '../application/auth_providers.dart';
-import '../domain/auth_failure.dart';
 import '../domain/auth_validators.dart';
+import '../domain/sign_up_result.dart';
 import 'auth_submission.dart';
 import 'check_email_screen.dart';
 import 'widgets/auth_fields.dart';
 import 'widgets/auth_layout.dart';
 import 'widgets/auth_message.dart';
 
-/// Sign-in screen; the entry point for signed-out users.
-class AuthScreen extends ConsumerStatefulWidget {
-  const AuthScreen({super.key});
+class SignUpScreen extends ConsumerStatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  ConsumerState<AuthScreen> createState() => _AuthScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _AuthScreenState extends ConsumerState<AuthScreen> with AuthSubmission {
+class _SignUpScreenState extends ConsumerState<SignUpScreen>
+    with AuthSubmission {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  Future<void> _signIn() async {
-    ref.read(authLinkFailureProvider.notifier).clear();
+  Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
 
     TextInput.finishAutofillContext();
-    // On success the router redirects to the app.
-    await submit(
-      () => ref
-          .read(authControllerProvider.notifier)
-          .signIn(
-            email: _emailController.text,
-            password: _passwordController.text,
-          ),
-    );
-  }
-
-  Future<void> _resendConfirmation() async {
     final email = _emailController.text.trim();
-    final sent = await submit(
-      () => ref
+    SignUpResult? result;
+    await submit(() async {
+      result = await ref
           .read(authControllerProvider.notifier)
-          .resendConfirmationEmail(email),
-    );
-    if (sent && mounted) {
+          .signUp(email: email, password: _passwordController.text);
+    });
+
+    // If confirmation is disabled the user is signed in and the router
+    // redirects to the app on its own.
+    if (result == SignUpResult.confirmationRequired && mounted) {
       context.go(
         CheckEmailScreen.location(
           email: email,
@@ -68,40 +61,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with AuthSubmission {
     }
   }
 
-  void _openForgotPassword() {
-    final email = _emailController.text.trim();
-    context.push(
-      Uri(
-        path: AppRoutes.forgotPassword,
-        queryParameters: email.isEmpty ? null : {'email': email},
-      ).toString(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final linkFailure = ref.watch(authLinkFailureProvider);
-    final error = failure ?? linkFailure;
-
     return AuthLayout(
-      heading: 'Sign in',
-      subheading: 'Welcome back.',
+      heading: 'Create an account',
+      subheading:
+          'Use at least ${AuthValidators.minPasswordLength} characters '
+          'for your password.',
       child: Form(
         key: _formKey,
         child: AutofillGroup(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (error != null) ...[
-                AuthMessage(
-                  message: error.message,
-                  action: error.type == AuthFailureType.emailNotConfirmed
-                      ? TextButton(
-                          onPressed: isSubmitting ? null : _resendConfirmation,
-                          child: const Text('Resend confirmation email'),
-                        )
-                      : null,
-                ),
+              if (failure != null) ...[
+                AuthMessage(message: failure!.message),
                 const SizedBox(height: AppSpacing.md),
               ],
               EmailField(controller: _emailController, enabled: !isSubmitting),
@@ -109,33 +83,38 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with AuthSubmission {
               PasswordField(
                 controller: _passwordController,
                 enabled: !isSubmitting,
-                validator: AuthValidators.requiredPassword,
-                onSubmitted: _signIn,
+                isNewPassword: true,
+                textInputAction: TextInputAction.next,
+                validator: AuthValidators.newPassword,
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: isSubmitting ? null : _openForgotPassword,
-                  child: const Text('Forgot password?'),
+              const SizedBox(height: AppSpacing.md),
+              PasswordField(
+                controller: _confirmController,
+                label: 'Confirm password',
+                enabled: !isSubmitting,
+                isNewPassword: true,
+                validator: AuthValidators.confirmPassword(
+                  () => _passwordController.text,
                 ),
+                onSubmitted: _signUp,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               LoadingButton(
-                label: 'Sign in',
+                label: 'Create account',
                 isLoading: isSubmitting,
-                onPressed: _signIn,
+                onPressed: _signUp,
               ),
               const SizedBox(height: AppSpacing.lg),
               Wrap(
                 alignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Text('New here?'),
+                  const Text('Already have an account?'),
                   TextButton(
                     onPressed: isSubmitting
                         ? null
-                        : () => context.push(AppRoutes.signUp),
-                    child: const Text('Create an account'),
+                        : () => context.go(AppRoutes.auth),
+                    child: const Text('Sign in'),
                   ),
                 ],
               ),

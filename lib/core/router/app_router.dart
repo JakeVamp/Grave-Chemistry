@@ -1,7 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/application/auth_providers.dart';
+import '../../features/auth/domain/auth_status.dart';
 import '../../features/auth/presentation/auth_screen.dart';
+import '../../features/auth/presentation/check_email_screen.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
+import '../../features/auth/presentation/reset_password_screen.dart';
+import '../../features/auth/presentation/sign_up_screen.dart';
 import '../../features/discovery/presentation/discovery_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/matches/presentation/matches_screen.dart';
@@ -10,11 +17,20 @@ import '../../features/profile_setup/presentation/profile_setup_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../shared/widgets/not_found_screen.dart';
 import 'app_routes.dart';
+import 'auth_guard.dart';
 
-/// Auth-based redirects will be added here once authentication is built.
 final appRouterProvider = Provider<GoRouter>((ref) {
+  // Bridges Riverpod to go_router: the router re-runs its redirect whenever
+  // the auth status changes, without the router itself being rebuilt.
+  final authStatus = ValueNotifier<AuthStatus>(
+    ref.read(authControllerProvider),
+  );
+  ref.listen(authControllerProvider, (_, next) => authStatus.value = next);
+
   final router = GoRouter(
     initialLocation: AppRoutes.home,
+    refreshListenable: authStatus,
+    redirect: (context, state) => authGuard(authStatus.value, state.uri.path),
     routes: [
       GoRoute(
         path: AppRoutes.home,
@@ -23,6 +39,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.auth,
         builder: (context, state) => const AuthScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.signUp,
+        builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (context, state) => ForgotPasswordScreen(
+          initialEmail: state.uri.queryParameters['email'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.checkEmail,
+        builder: (context, state) =>
+            CheckEmailScreen.fromQuery(state.uri.queryParameters),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        builder: (context, state) => const ResetPasswordScreen(),
       ),
       GoRoute(
         path: AppRoutes.profileSetup,
@@ -47,6 +82,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
     errorBuilder: (context, state) => NotFoundScreen(location: state.uri),
   );
-  ref.onDispose(router.dispose);
+  ref.onDispose(() {
+    router.dispose();
+    authStatus.dispose();
+  });
   return router;
 });
