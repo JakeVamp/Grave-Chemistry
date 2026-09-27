@@ -1,4 +1,4 @@
-package com.gravechemistry.grave_chemistry
+package com.gravechemistry.app
 
 import io.flutter.embedding.android.FlutterActivity
 
