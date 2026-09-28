@@ -47,11 +47,18 @@ abstract final class AppTheme {
         shape: shape,
       ),
       listTileTheme: ListTileThemeData(
-        iconColor: AppColors.primaryBright,
+        iconColor: AppColors.accentText,
         textColor: AppColors.textPrimary,
         shape: shape,
       ),
       dividerTheme: const DividerThemeData(color: AppColors.outline),
+      radioTheme: RadioThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.accentText
+              : AppColors.textSecondary,
+        ),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -69,7 +76,7 @@ abstract final class AppTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: AppColors.primaryBright),
+        style: TextButton.styleFrom(foregroundColor: AppColors.accentText),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -84,7 +91,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radius),
-          borderSide: const BorderSide(color: AppColors.primaryBright),
+          borderSide: const BorderSide(color: AppColors.accentText),
         ),
       ),
     );

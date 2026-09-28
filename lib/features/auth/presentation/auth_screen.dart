@@ -13,7 +13,7 @@ import 'auth_submission.dart';
 import 'check_email_screen.dart';
 import 'widgets/auth_fields.dart';
 import 'widgets/auth_layout.dart';
-import 'widgets/auth_message.dart';
+import '../../../shared/widgets/message_banner.dart';
 
 /// Sign-in screen; the entry point for signed-out users.
 class AuthScreen extends ConsumerStatefulWidget {
@@ -93,7 +93,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with AuthSubmission {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (error != null) ...[
-                AuthMessage(
+                MessageBanner(
                   message: error.message,
                   action: error.type == AuthFailureType.emailNotConfirmed
                       ? TextButton(

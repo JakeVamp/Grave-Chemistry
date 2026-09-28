@@ -7,7 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../application/auth_providers.dart';
 import 'auth_submission.dart';
 import 'widgets/auth_layout.dart';
-import 'widgets/auth_message.dart';
+import '../../../shared/widgets/message_banner.dart';
 
 enum CheckEmailReason { confirmSignUp, passwordReset }
 
@@ -79,7 +79,7 @@ class _CheckEmailScreenState extends ConsumerState<CheckEmailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AuthMessage(message: message, tone: AuthMessageTone.info),
+          MessageBanner(message: message, tone: MessageTone.info),
           const SizedBox(height: AppSpacing.md),
           Text(
             "Didn't get it? Check your spam folder, or send it again.",
@@ -87,13 +87,13 @@ class _CheckEmailScreenState extends ConsumerState<CheckEmailScreen>
           ),
           if (failure != null) ...[
             const SizedBox(height: AppSpacing.md),
-            AuthMessage(message: failure!.message),
+            MessageBanner(message: failure!.message),
           ],
           if (_resent) ...[
             const SizedBox(height: AppSpacing.md),
-            const AuthMessage(
+            const MessageBanner(
               message: 'Email sent again.',
-              tone: AuthMessageTone.info,
+              tone: MessageTone.info,
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
