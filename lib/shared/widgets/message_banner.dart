@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../shared/utils/context_extensions.dart';
+import '../../core/theme/app_spacing.dart';
+import '../utils/context_extensions.dart';
 
-enum AuthMessageTone { error, info }
+enum MessageTone { error, info }
 
-/// Inline banner for errors and confirmations on auth screens.
-class AuthMessage extends StatelessWidget {
-  const AuthMessage({
+/// Inline banner for errors and confirmations.
+class MessageBanner extends StatelessWidget {
+  const MessageBanner({
     super.key,
     required this.message,
-    this.tone = AuthMessageTone.error,
+    this.tone = MessageTone.error,
     this.action,
   });
 
   final String message;
-  final AuthMessageTone tone;
+  final MessageTone tone;
 
   /// Optional follow-up, e.g. a "Resend email" button.
   final Widget? action;
 
   @override
   Widget build(BuildContext context) {
-    final isError = tone == AuthMessageTone.error;
+    final isError = tone == MessageTone.error;
     final accent = isError ? context.colors.error : context.colors.primary;
 
     return Semantics(

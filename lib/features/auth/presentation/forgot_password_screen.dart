@@ -9,7 +9,7 @@ import 'auth_submission.dart';
 import 'check_email_screen.dart';
 import 'widgets/auth_fields.dart';
 import 'widgets/auth_layout.dart';
-import 'widgets/auth_message.dart';
+import '../../../shared/widgets/message_banner.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key, this.initialEmail = ''});
@@ -64,7 +64,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (failure != null) ...[
-              AuthMessage(message: failure!.message),
+              MessageBanner(message: failure!.message),
               const SizedBox(height: AppSpacing.md),
             ],
             EmailField(

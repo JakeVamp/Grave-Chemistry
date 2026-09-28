@@ -37,6 +37,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Grave Chemistry uses your camera to take a live verification photo that confirms your account belongs to a real person. The photo is used only for account verification and is never shown on your profile.</string>
 	<key>FlutterDeepLinkingEnabled</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>

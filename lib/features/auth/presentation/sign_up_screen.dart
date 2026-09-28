@@ -13,7 +13,7 @@ import 'auth_submission.dart';
 import 'check_email_screen.dart';
 import 'widgets/auth_fields.dart';
 import 'widgets/auth_layout.dart';
-import 'widgets/auth_message.dart';
+import '../../../shared/widgets/message_banner.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -75,7 +75,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (failure != null) ...[
-                AuthMessage(message: failure!.message),
+                MessageBanner(message: failure!.message),
                 const SizedBox(height: AppSpacing.md),
               ],
               EmailField(controller: _emailController, enabled: !isSubmitting),

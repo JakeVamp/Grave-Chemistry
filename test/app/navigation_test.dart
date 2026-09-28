@@ -9,7 +9,6 @@ void main() {
       pumpApp(tester, FakeAuthRepository(currentUser: testUser));
 
   const destinations = {
-    'Profile setup': 'Profile setup is not built yet.',
     'Discovery': 'Discovery is not built yet.',
     'Matches': 'Matches are not built yet.',
     'Messages': 'Messaging is not built yet.',

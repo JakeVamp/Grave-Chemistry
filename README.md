@@ -2,9 +2,10 @@
 
 A dating app built with Flutter and Supabase for iOS and Android.
 
-> **Status:** Foundation and email/password authentication are in place.
-> The other screens are still placeholders. Features get built one step at
-> a time.
+> **Status:** Foundation, email/password authentication, first-time profile
+> setup and live photo verification (manual review) are in place, plus
+> server-side anti-abuse foundations. The other screens are still
+> placeholders. Features get built one step at a time.
 
 ## Tech stack
 
@@ -58,8 +59,12 @@ Run `flutter doctor` to confirm your toolchain works.
    If a value is missing or invalid, the app starts on a configuration-error
    screen that lists the problem. It will not crash.
 
-4. **Configure Supabase Auth** — see [Supabase Auth setup](#supabase-auth-setup)
+4. **Configure Supabase Auth**: see [Supabase Auth setup](#supabase-auth-setup)
    below. Email links will not open the app until this is done.
+
+5. **Apply the database migrations**: see
+   [Database migrations](#database-migrations). Profile setup can't save
+   until the `profiles` table exists.
 
 ### Security rules for configuration
 
@@ -119,12 +124,85 @@ These settings live in the Supabase dashboard and can't be set from the app.
 - **Sessions** are persisted and refreshed automatically by
   `supabase_flutter`, so users stay signed in across restarts.
 
+## Database migrations
+
+Schema changes live in `supabase/migrations/` as timestamped SQL files, in
+the format the Supabase CLI expects. Apply them in filename order. Never edit
+a migration that has already been applied; add a new one instead.
+
+**Option A: SQL Editor (simplest).** In the Supabase dashboard, open
+**SQL Editor → New query**, paste the full contents of the migration file,
+and click **Run**. The whole script runs in one transaction, so it either
+applies completely or not at all.
+
+**Option B: Supabase CLI.** Run `supabase link --project-ref <your-ref>`
+(it asks for your database password locally; never commit it), then
+`supabase db push`. The CLI records which migrations have been applied.
+
+Use one method per project. Mixing them can make the CLI try to re-run a
+migration that was already applied in the SQL Editor.
+
+Current migrations, in order:
+
+1. `20260928120000_create_profiles.sql`: profiles and lookup tables
+2. `20260929100000_security_foundation.sql`: `private` schema, rate
+   limits, account status, abuse flags, moderator checks
+3. `20260929100100_live_photo_verification.sql`: verification sessions,
+   audit log, private storage bucket and policies
+4. `20260929100200_anti_abuse.sql`: devices, phones, deletion records,
+   sign-up hook
+
+After applying them, check **Project Settings → Data API → Exposed
+schemas** and make sure `private` is **not** listed.
+
+### Testing migrations locally
+
+`tool/test_database.sh` applies every migration to a throwaway local
+PostgreSQL (with a small stand-in for Supabase's `auth` and `storage`
+schemas) and runs the security tests in `supabase/tests/`. It needs the
+PostgreSQL server binaries (`initdb`, `pg_ctl`, `psql`).
+
+## How profiles work
+
+- **Table.** `public.profiles` has one row per auth user (`id` =
+  `auth.users.id`). Email and password stay in Supabase Auth.
+- **Extensible choices.** Community identities, dating preferences and
+  gender options are rows in lookup tables (`community_identities`,
+  `dating_preferences`, `gender_options`). To add a value, insert a row;
+  to retire one, set `is_active = false`. The app's enums
+  (`CommunityIdentity`, `DatingPreference`, `GenderOption`) must list the
+  same codes.
+- **Completion is decided by the database.** A trigger computes
+  `profile_completed` on every insert and update, and clients have no
+  permission to write that column. The app validates with the same rules
+  first, only for fast feedback.
+- **Age.** Users must be 18 or older, calculated from `birth_date` in UTC.
+  Age is never stored. `birth_date` is private to its owner; future
+  discovery features must expose only a computed age.
+- **Access (RLS).** Signed-in users can create, read and update only their
+  own profile. Anonymous users have no access. There is no delete policy;
+  profiles are removed with the auth user.
+- **Routing.** After sign-in the app loads the profile. Users without a
+  completed profile are kept on `/profile-setup`; users with one go to the
+  app.
+
+## Live photo verification
+
+Onboarding ends with a live photo taken with the camera (never the photo
+library). It is uploaded to a private bucket and reviewed. Submitting moves
+the user to `pending`, not `verified`; only a moderator or, later, a trusted
+liveness provider can approve. See
+[docs/security/verification-and-anti-abuse.md](docs/security/verification-and-anti-abuse.md)
+for the full design, trust boundaries, retention and what production
+automation still needs.
+
 ## Common commands
 
 ```sh
 dart format lib test            # format
 flutter analyze                 # static analysis
 flutter test                    # unit + widget tests
+tool/test_database.sh           # SQL migration + security tests
 flutter run --dart-define-from-file=env/dev.json
 
 # Release builds
@@ -153,7 +231,8 @@ lib/
 │   ├── home/presentation/
 │   ├── matches/presentation/
 │   ├── messages/presentation/
-│   ├── profile_setup/presentation/
+│   ├── profile/                  # domain/ data/ application/ presentation/
+│   ├── verification/             # domain/ data/ application/ presentation/
 │   └── settings/presentation/
 └── shared/                       # Reusable, feature-agnostic code
     ├── utils/
@@ -161,6 +240,11 @@ lib/
 test/                             # Mirrors lib/
 env/
 └── example.json                  # Template for local env files (committed)
+supabase/
+├── migrations/                   # Versioned SQL, applied in filename order
+└── tests/                        # SQL security tests (tool/test_database.sh)
+docs/security/                    # Security design documents
+tool/                             # Developer scripts
 ```
 
 ### Conventions
@@ -170,10 +254,14 @@ env/
   interfaces, pure logic), `data/` (Supabase implementations) and
   `application/` (Riverpod providers, state) next to `presentation/`.
   `features/auth/` is the reference example.
-- **Features never import from other features**, with one exception:
-  any feature may use `features/auth/application/` for auth state and
-  actions (e.g. sign-out). Other shared code goes in `lib/shared/` or
-  `lib/core/`.
+- **Features never import from other features**, except for account-level
+  state: any feature may use `features/auth/application/` (auth state,
+  sign-out) and `features/profile/application/` or `profile/domain/` (the
+  signed-in user's profile and onboarding state). Other shared code goes in
+  `lib/shared/` or `lib/core/`.
+- **No database queries in widgets.** Widgets call a controller in
+  `application/`, which uses a repository interface from `domain/`,
+  implemented in `data/`.
 - **Route paths live in `AppRoutes`.** Don't write path strings in widgets.
 - **Get Supabase from `supabaseClientProvider`**, not `Supabase.instance`,
   so tests can override it.

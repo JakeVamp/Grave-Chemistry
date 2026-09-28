@@ -11,7 +11,6 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   static const _destinations = <_Destination>[
-    _Destination('Profile setup', Icons.person_outline, AppRoutes.profileSetup),
     _Destination('Discovery', Icons.explore_outlined, AppRoutes.discovery),
     _Destination('Matches', Icons.favorite_border, AppRoutes.matches),
     _Destination('Messages', Icons.chat_bubble_outline, AppRoutes.messages),

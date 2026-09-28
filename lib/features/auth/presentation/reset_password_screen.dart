@@ -8,7 +8,7 @@ import '../domain/auth_validators.dart';
 import 'auth_submission.dart';
 import 'widgets/auth_fields.dart';
 import 'widgets/auth_layout.dart';
-import 'widgets/auth_message.dart';
+import '../../../shared/widgets/message_banner.dart';
 
 /// Shown after the user opens a password-reset link. The router keeps them
 /// here until they set a new password or cancel.
@@ -67,7 +67,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (failure != null) ...[
-                AuthMessage(message: failure!.message),
+                MessageBanner(message: failure!.message),
                 const SizedBox(height: AppSpacing.md),
               ],
               PasswordField(
