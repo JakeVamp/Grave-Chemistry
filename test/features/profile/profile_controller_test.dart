@@ -24,7 +24,7 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    container.listen(profileGateProvider, (_, _) {});
+    container.listen(onboardingGateProvider, (_, _) {});
     return container;
   }
 
@@ -63,10 +63,13 @@ void main() {
   test('signed in without a profile: gate is incomplete', () async {
     auth = FakeAuthRepository(currentUser: testUser);
     final container = createContainer();
-    expect(container.read(profileGateProvider), ProfileGate.loading);
+    expect(container.read(onboardingGateProvider), OnboardingGate.loading);
 
     await settle(container);
-    expect(container.read(profileGateProvider), ProfileGate.incomplete);
+    expect(
+      container.read(onboardingGateProvider),
+      OnboardingGate.profileIncomplete,
+    );
     expect(profiles.fetchCount, 1);
   });
 
@@ -76,7 +79,7 @@ void main() {
     final container = createContainer();
     await settle(container);
 
-    expect(container.read(profileGateProvider), ProfileGate.complete);
+    expect(container.read(onboardingGateProvider), OnboardingGate.ready);
   });
 
   test('signing in loads the profile; signing out clears it', () async {
@@ -88,7 +91,7 @@ void main() {
     auth.emit(AuthEventType.signedIn, testUser);
     await settle(container);
     expect(profiles.fetchCount, 1);
-    expect(container.read(profileGateProvider), ProfileGate.complete);
+    expect(container.read(onboardingGateProvider), OnboardingGate.ready);
 
     // A token refresh for the same user must not refetch.
     auth.emit(AuthEventType.sessionRefreshed, testUser);
@@ -109,12 +112,12 @@ void main() {
       );
     final container = createContainer();
     await settle(container);
-    expect(container.read(profileGateProvider), ProfileGate.error);
+    expect(container.read(onboardingGateProvider), OnboardingGate.error);
 
     container.read(profileControllerProvider.notifier).reload();
-    expect(container.read(profileGateProvider), ProfileGate.loading);
+    expect(container.read(onboardingGateProvider), OnboardingGate.loading);
     await settle(container);
-    expect(container.read(profileGateProvider), ProfileGate.complete);
+    expect(container.read(onboardingGateProvider), OnboardingGate.ready);
   });
 
   test('saving publishes the server result', () async {
@@ -126,7 +129,11 @@ void main() {
         .read(profileControllerProvider.notifier)
         .save(validDraft);
     expect(saved.isCompleted, isTrue);
-    expect(container.read(profileGateProvider), ProfileGate.complete);
+    // A complete profile still needs verification before the app opens.
+    expect(
+      container.read(onboardingGateProvider),
+      OnboardingGate.verificationRequired,
+    );
   });
 
   test('completion comes from the repository, not the client', () async {
@@ -139,7 +146,10 @@ void main() {
     await container
         .read(profileControllerProvider.notifier)
         .save(const ProfileDraft(displayName: 'Raven'));
-    expect(container.read(profileGateProvider), ProfileGate.incomplete);
+    expect(
+      container.read(onboardingGateProvider),
+      OnboardingGate.profileIncomplete,
+    );
   });
 
   test('a failed save throws and keeps the previous state', () async {
@@ -155,6 +165,9 @@ void main() {
       container.read(profileControllerProvider.notifier).save(validDraft),
       throwsA(isA<ProfileFailure>()),
     );
-    expect(container.read(profileGateProvider), ProfileGate.incomplete);
+    expect(
+      container.read(onboardingGateProvider),
+      OnboardingGate.profileIncomplete,
+    );
   });
 }

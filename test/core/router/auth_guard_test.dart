@@ -22,6 +22,9 @@ void main() {
     AppRoutes.resetPassword,
     AppRoutes.profileSetup,
     AppRoutes.profileLoading,
+    AppRoutes.verification,
+    AppRoutes.verificationRetry,
+    AppRoutes.verificationPending,
     AppRoutes.discovery,
     AppRoutes.matches,
     AppRoutes.messages,
@@ -30,9 +33,9 @@ void main() {
     '/authentic', // looks like /auth but isn't an auth route
   ];
 
-  test('no auth/profile/path combination can produce a redirect loop', () {
+  test('no auth/onboarding/path combination can produce a redirect loop', () {
     for (final status in statuses) {
-      for (final gate in ProfileGate.values) {
+      for (final gate in OnboardingGate.values) {
         for (final path in paths) {
           final target = authGuard(status, gate, path);
           if (target != null) {
@@ -47,66 +50,83 @@ void main() {
     }
   });
 
-  test(
-    'signed-out users can only reach auth screens, whatever the profile',
-    () {
-      for (final gate in ProfileGate.values) {
-        expect(authGuard(const SignedOut(), gate, AppRoutes.auth), isNull);
-        expect(authGuard(const SignedOut(), gate, AppRoutes.signUp), isNull);
+  test('signed-out users can only reach auth screens', () {
+    for (final gate in OnboardingGate.values) {
+      for (final path in paths) {
         expect(
-          authGuard(const SignedOut(), gate, AppRoutes.home),
-          AppRoutes.auth,
-        );
-        expect(
-          authGuard(const SignedOut(), gate, AppRoutes.profileSetup),
-          AppRoutes.auth,
-        );
-        expect(
-          authGuard(const SignedOut(), gate, '/authentic'),
-          AppRoutes.auth,
+          authGuard(const SignedOut(), gate, path),
+          AppRoutes.isAuthRoute(path) ? isNull : AppRoutes.auth,
+          reason: '$gate $path',
         );
       }
-    },
-  );
+    }
+  });
 
   group('signed in', () {
     const status = SignedIn(testUser);
 
-    test('without a completed profile: only profile setup', () {
+    void expectPinnedTo(OnboardingGate gate, String route) {
       for (final path in paths) {
         expect(
-          authGuard(status, ProfileGate.incomplete, path),
-          path == AppRoutes.profileSetup ? isNull : AppRoutes.profileSetup,
-          reason: path,
+          authGuard(status, gate, path),
+          path == route ? isNull : route,
+          reason: '$gate $path',
         );
       }
+    }
+
+    test('loading or failed profile: loading screen only', () {
+      expectPinnedTo(OnboardingGate.loading, AppRoutes.profileLoading);
+      expectPinnedTo(OnboardingGate.error, AppRoutes.profileLoading);
     });
 
-    test('while the profile loads or fails: only the loading screen', () {
-      for (final gate in [ProfileGate.loading, ProfileGate.error]) {
-        for (final path in paths) {
-          expect(
-            authGuard(status, gate, path),
-            path == AppRoutes.profileLoading
-                ? isNull
-                : AppRoutes.profileLoading,
-            reason: '$gate $path',
-          );
-        }
+    test('incomplete profile: profile setup only', () {
+      expectPinnedTo(OnboardingGate.profileIncomplete, AppRoutes.profileSetup);
+    });
+
+    test('complete profile without verification: verification only', () {
+      expectPinnedTo(
+        OnboardingGate.verificationRequired,
+        AppRoutes.verification,
+      );
+    });
+
+    test('pending verification: pending screen only, not the app', () {
+      expectPinnedTo(
+        OnboardingGate.verificationPending,
+        AppRoutes.verificationPending,
+      );
+      expect(
+        authGuard(status, OnboardingGate.verificationPending, AppRoutes.home),
+        AppRoutes.verificationPending,
+      );
+    });
+
+    test('rejected, expired or revoked: retry screen only', () {
+      expectPinnedTo(
+        OnboardingGate.verificationRetry,
+        AppRoutes.verificationRetry,
+      );
+    });
+
+    test('verified: the app, not the onboarding screens', () {
+      const gate = OnboardingGate.ready;
+      for (final path in [
+        AppRoutes.home,
+        AppRoutes.settings,
+        AppRoutes.discovery,
+      ]) {
+        expect(authGuard(status, gate, path), isNull, reason: path);
       }
-    });
-
-    test('with a completed profile: the app, not the gating screens', () {
-      const gate = ProfileGate.complete;
-      expect(authGuard(status, gate, AppRoutes.home), isNull);
-      expect(authGuard(status, gate, AppRoutes.settings), isNull);
-      expect(authGuard(status, gate, AppRoutes.discovery), isNull);
       for (final path in [
         AppRoutes.auth,
         AppRoutes.signUp,
         AppRoutes.resetPassword,
         AppRoutes.profileSetup,
         AppRoutes.profileLoading,
+        AppRoutes.verification,
+        AppRoutes.verificationRetry,
+        AppRoutes.verificationPending,
       ]) {
         expect(authGuard(status, gate, path), AppRoutes.home, reason: path);
       }
@@ -115,7 +135,7 @@ void main() {
 
   test('password recovery pins the user to the reset screen', () {
     const status = PasswordRecovery(testUser);
-    for (final gate in ProfileGate.values) {
+    for (final gate in OnboardingGate.values) {
       for (final path in paths) {
         expect(
           authGuard(status, gate, path),

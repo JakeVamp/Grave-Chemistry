@@ -8,6 +8,7 @@ import 'package:grave_chemistry/features/profile/domain/profile_completion.dart'
 import 'package:grave_chemistry/features/profile/domain/profile_draft.dart';
 import 'package:grave_chemistry/features/profile/domain/profile_failure.dart';
 import 'package:grave_chemistry/features/profile/domain/profile_repository.dart';
+import 'package:grave_chemistry/features/profile/domain/verification_status.dart';
 
 final completedProfile = Profile(
   id: 'user-1',
@@ -19,6 +20,21 @@ final completedProfile = Profile(
   gender: GenderOption.nonBinary,
   communityIdentity: CommunityIdentity.goth,
   datingPreference: DatingPreference.gothSeekingGoth,
+  verificationStatus: VerificationStatus.verified,
+);
+
+/// [completedProfile] with a different verification status.
+Profile completedProfileWith(VerificationStatus status) => Profile(
+  id: completedProfile.id,
+  isCompleted: true,
+  displayName: completedProfile.displayName,
+  birthDate: completedProfile.birthDate,
+  city: completedProfile.city,
+  region: completedProfile.region,
+  gender: completedProfile.gender,
+  communityIdentity: completedProfile.communityIdentity,
+  datingPreference: completedProfile.datingPreference,
+  verificationStatus: status,
 );
 
 /// In-memory [ProfileRepository]. Like the database, it decides completion
@@ -26,7 +42,7 @@ final completedProfile = Profile(
 class FakeProfileRepository implements ProfileRepository {
   FakeProfileRepository({this.profile});
 
-  /// A repository whose user already finished onboarding.
+  /// A repository whose user finished onboarding and is verified.
   factory FakeProfileRepository.completed() =>
       FakeProfileRepository(profile: completedProfile);
 
@@ -78,6 +94,8 @@ class FakeProfileRepository implements ProfileRepository {
           : d.genderSelfDescription,
       communityIdentity: d.communityIdentity,
       datingPreference: d.datingPreference,
+      verificationStatus:
+          profile?.verificationStatus ?? VerificationStatus.notStarted,
     );
   }
 }

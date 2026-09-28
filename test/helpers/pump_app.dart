@@ -4,16 +4,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:grave_chemistry/app/app.dart';
 import 'package:grave_chemistry/features/auth/application/auth_providers.dart';
 import 'package:grave_chemistry/features/profile/application/profile_providers.dart';
+import 'package:grave_chemistry/features/verification/application/verification_providers.dart';
 
 import 'fake_auth_repository.dart';
 import 'fake_profile_repository.dart';
+import 'fake_verification.dart';
 
-/// Pumps the full app with fake auth and profile backends. Defaults to a
-/// phone-sized screen and a user whose profile is already complete.
+/// Pumps the full app with fake backends and a fake camera. Defaults to a
+/// phone-sized screen and a user who is fully onboarded and verified.
 Future<void> pumpApp(
   WidgetTester tester,
   FakeAuthRepository repository, {
   FakeProfileRepository? profiles,
+  FakeVerificationRepository? verification,
+  FakeCameraPermissionService? cameraPermission,
+  FakeCameraFactory? cameras,
   Size logicalSize = const Size(390, 844),
   double textScale = 1,
   bool settle = true,
@@ -24,13 +29,23 @@ Future<void> pumpApp(
   addTearDown(tester.view.reset);
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
+  final profileRepository = profiles ?? FakeProfileRepository.completed();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(repository),
-        profileRepositoryProvider.overrideWithValue(
-          profiles ?? FakeProfileRepository.completed(),
+        profileRepositoryProvider.overrideWithValue(profileRepository),
+        verificationRepositoryProvider.overrideWithValue(
+          verification ??
+              FakeVerificationRepository(profiles: profileRepository),
         ),
+        cameraPermissionServiceProvider.overrideWithValue(
+          cameraPermission ?? FakeCameraPermissionService(),
+        ),
+        verificationCameraFactoryProvider.overrideWithValue(
+          (cameras ?? FakeCameraFactory()).call,
+        ),
+        photoSanitizerProvider.overrideWithValue((bytes) async => bytes),
       ],
       child: const GraveChemistryApp(),
     ),

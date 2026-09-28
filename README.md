@@ -2,9 +2,10 @@
 
 A dating app built with Flutter and Supabase for iOS and Android.
 
-> **Status:** Foundation, email/password authentication and first-time
-> profile setup are in place. The other screens are still placeholders.
-> Features get built one step at a time.
+> **Status:** Foundation, email/password authentication, first-time profile
+> setup and live photo verification (manual review) are in place, plus
+> server-side anti-abuse foundations. The other screens are still
+> placeholders. Features get built one step at a time.
 
 ## Tech stack
 
@@ -141,6 +142,26 @@ applies completely or not at all.
 Use one method per project. Mixing them can make the CLI try to re-run a
 migration that was already applied in the SQL Editor.
 
+Current migrations, in order:
+
+1. `20260928120000_create_profiles.sql`: profiles and lookup tables
+2. `20260929100000_security_foundation.sql`: `private` schema, rate
+   limits, account status, abuse flags, moderator checks
+3. `20260929100100_live_photo_verification.sql`: verification sessions,
+   audit log, private storage bucket and policies
+4. `20260929100200_anti_abuse.sql`: devices, phones, deletion records,
+   sign-up hook
+
+After applying them, check **Project Settings → Data API → Exposed
+schemas** and make sure `private` is **not** listed.
+
+### Testing migrations locally
+
+`tool/test_database.sh` applies every migration to a throwaway local
+PostgreSQL (with a small stand-in for Supabase's `auth` and `storage`
+schemas) and runs the security tests in `supabase/tests/`. It needs the
+PostgreSQL server binaries (`initdb`, `pg_ctl`, `psql`).
+
 ## How profiles work
 
 - **Table.** `public.profiles` has one row per auth user (`id` =
@@ -165,12 +186,23 @@ migration that was already applied in the SQL Editor.
   completed profile are kept on `/profile-setup`; users with one go to the
   app.
 
+## Live photo verification
+
+Onboarding ends with a live photo taken with the camera (never the photo
+library). It is uploaded to a private bucket and reviewed. Submitting moves
+the user to `pending`, not `verified`; only a moderator or, later, a trusted
+liveness provider can approve. See
+[docs/security/verification-and-anti-abuse.md](docs/security/verification-and-anti-abuse.md)
+for the full design, trust boundaries, retention and what production
+automation still needs.
+
 ## Common commands
 
 ```sh
 dart format lib test            # format
 flutter analyze                 # static analysis
 flutter test                    # unit + widget tests
+tool/test_database.sh           # SQL migration + security tests
 flutter run --dart-define-from-file=env/dev.json
 
 # Release builds
@@ -200,6 +232,7 @@ lib/
 │   ├── matches/presentation/
 │   ├── messages/presentation/
 │   ├── profile/                  # domain/ data/ application/ presentation/
+│   ├── verification/             # domain/ data/ application/ presentation/
 │   └── settings/presentation/
 └── shared/                       # Reusable, feature-agnostic code
     ├── utils/
@@ -208,7 +241,10 @@ test/                             # Mirrors lib/
 env/
 └── example.json                  # Template for local env files (committed)
 supabase/
-└── migrations/                   # Versioned SQL, applied in filename order
+├── migrations/                   # Versioned SQL, applied in filename order
+└── tests/                        # SQL security tests (tool/test_database.sh)
+docs/security/                    # Security design documents
+tool/                             # Developer scripts
 ```
 
 ### Conventions
@@ -218,10 +254,11 @@ supabase/
   interfaces, pure logic), `data/` (Supabase implementations) and
   `application/` (Riverpod providers, state) next to `presentation/`.
   `features/auth/` is the reference example.
-- **Features never import from other features**, with one exception:
-  any feature may use `features/auth/application/` for auth state and
-  actions (e.g. sign-out). Other shared code goes in `lib/shared/` or
-  `lib/core/`.
+- **Features never import from other features**, except for account-level
+  state: any feature may use `features/auth/application/` (auth state,
+  sign-out) and `features/profile/application/` or `profile/domain/` (the
+  signed-in user's profile and onboarding state). Other shared code goes in
+  `lib/shared/` or `lib/core/`.
 - **No database queries in widgets.** Widgets call a controller in
   `application/`, which uses a repository interface from `domain/`,
   implemented in `data/`.

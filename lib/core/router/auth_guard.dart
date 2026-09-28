@@ -2,14 +2,25 @@ import '../../features/auth/domain/auth_status.dart';
 import '../../features/profile/application/profile_providers.dart';
 import 'app_routes.dart';
 
+/// Routes a signed-in user must be on for each onboarding step. `ready`
+/// users may go anywhere in the app except these.
+const _onboardingRoutes = {
+  OnboardingGate.loading: AppRoutes.profileLoading,
+  OnboardingGate.error: AppRoutes.profileLoading,
+  OnboardingGate.profileIncomplete: AppRoutes.profileSetup,
+  OnboardingGate.verificationRequired: AppRoutes.verification,
+  OnboardingGate.verificationRetry: AppRoutes.verificationRetry,
+  OnboardingGate.verificationPending: AppRoutes.verificationPending,
+};
+
 /// Decides where a user may be, given their auth status and, once signed in,
-/// the state of their profile.
+/// their onboarding step.
 ///
 /// Returns the path to redirect to, or `null` to allow [path]. Every
 /// redirect target is itself allowed for the same inputs, so applying the
 /// guard twice always yields `null`, which makes redirect loops impossible.
 /// `auth_guard_test.dart` checks this for every route and state.
-String? authGuard(AuthStatus status, ProfileGate profile, String path) {
+String? authGuard(AuthStatus status, OnboardingGate onboarding, String path) {
   final onAuthRoute = AppRoutes.isAuthRoute(path);
 
   switch (status) {
@@ -18,19 +29,13 @@ String? authGuard(AuthStatus status, ProfileGate profile, String path) {
     case SignedOut():
       return onAuthRoute ? null : AppRoutes.auth;
     case SignedIn():
-      final allowed = switch (profile) {
-        ProfileGate.loading || ProfileGate.error => AppRoutes.profileLoading,
-        ProfileGate.incomplete => AppRoutes.profileSetup,
-        ProfileGate.complete => null,
-      };
-      if (allowed != null) return path == allowed ? null : allowed;
+      final required = _onboardingRoutes[onboarding];
+      if (required != null) return path == required ? null : required;
 
-      // Profile complete: anywhere in the app except the gating screens.
       final isGatingRoute =
           onAuthRoute ||
           path == AppRoutes.resetPassword ||
-          path == AppRoutes.profileLoading ||
-          path == AppRoutes.profileSetup;
+          _onboardingRoutes.containsValue(path);
       return isGatingRoute ? AppRoutes.home : null;
   }
 }

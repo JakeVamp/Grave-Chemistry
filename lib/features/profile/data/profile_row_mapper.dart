@@ -3,6 +3,7 @@ import '../domain/dating_preference.dart';
 import '../domain/gender_option.dart';
 import '../domain/profile.dart';
 import '../domain/profile_draft.dart';
+import '../domain/verification_status.dart';
 
 /// Converts between `public.profiles` rows and domain models.
 abstract final class ProfileRowMapper {
@@ -10,7 +11,9 @@ abstract final class ProfileRowMapper {
   static const String selectColumns =
       'id, display_name, birth_date, location_city, location_state_or_region, '
       'bio, gender, gender_self_description, community_identity, '
-      'dating_preference, profile_completed, created_at, updated_at';
+      'dating_preference, profile_completed, verification_status, '
+      'verification_submitted_at, verification_reviewed_at, created_at, '
+      'updated_at';
 
   static Profile fromRow(Map<String, dynamic> row) {
     return Profile(
@@ -29,13 +32,22 @@ abstract final class ProfileRowMapper {
       datingPreference: DatingPreference.fromCode(
         row['dating_preference'] as String?,
       ),
+      verificationStatus: VerificationStatus.fromCode(
+        row['verification_status'] as String?,
+      ),
+      verificationSubmittedAt: _parseTimestamp(
+        row['verification_submitted_at'] as String?,
+      ),
+      verificationReviewedAt: _parseTimestamp(
+        row['verification_reviewed_at'] as String?,
+      ),
       createdAt: _parseTimestamp(row['created_at'] as String?),
       updatedAt: _parseTimestamp(row['updated_at'] as String?),
     );
   }
 
-  /// Writable columns only. Completion, timestamps and id are excluded;
-  /// the database rejects client writes to them anyway.
+  /// Writable columns only. Completion, verification, timestamps and id are
+  /// excluded; the database rejects client writes to them anyway.
   static Map<String, dynamic> toWritableRow(ProfileDraft draft) {
     final d = draft.normalized();
     return {

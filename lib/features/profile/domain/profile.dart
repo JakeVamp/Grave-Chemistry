@@ -2,6 +2,7 @@ import 'age.dart';
 import 'community_identity.dart';
 import 'dating_preference.dart';
 import 'gender_option.dart';
+import 'verification_status.dart';
 
 /// The signed-in user's own profile.
 ///
@@ -21,6 +22,9 @@ class Profile {
     this.genderSelfDescription,
     this.communityIdentity,
     this.datingPreference,
+    this.verificationStatus,
+    this.verificationSubmittedAt,
+    this.verificationReviewedAt,
     this.createdAt,
     this.updatedAt,
   });
@@ -39,6 +43,13 @@ class Profile {
   final String? genderSelfDescription;
   final CommunityIdentity? communityIdentity;
   final DatingPreference? datingPreference;
+
+  /// Set by the backend only. Null if the server sent a status this app
+  /// version doesn't know.
+  final VerificationStatus? verificationStatus;
+  final DateTime? verificationSubmittedAt;
+  final DateTime? verificationReviewedAt;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 

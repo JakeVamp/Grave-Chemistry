@@ -16,6 +16,11 @@ abstract final class AppRoutes {
   /// Shown while a signed-in user's profile loads, or if loading fails.
   static const String profileLoading = '/profile-loading';
 
+  /// Live photo verification, part of onboarding.
+  static const String verification = '/verification';
+  static const String verificationRetry = '/verification/retry';
+  static const String verificationPending = '/verification/pending';
+
   static const String discovery = '/discovery';
   static const String matches = '/matches';
   static const String messages = '/messages';

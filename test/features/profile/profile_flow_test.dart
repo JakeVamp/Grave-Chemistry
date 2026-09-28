@@ -210,7 +210,9 @@ void main() {
       );
     });
 
-    testWidgets('a valid profile saves and enters the app', (tester) async {
+    testWidgets('a valid profile saves and moves on to verification', (
+      tester,
+    ) async {
       final profiles = await openSetup(tester);
       await _fillValidProfile(tester);
       await tester.tapAndSettle(_saveButton);
@@ -223,7 +225,9 @@ void main() {
       expect(saved.gender, GenderOption.nonBinary);
       expect(saved.communityIdentity, CommunityIdentity.goth);
       expect(saved.datingPreference, DatingPreference.gothSeekingNormie);
-      expect(find.text(_homeMarker), findsOneWidget);
+      // Next onboarding step: live photo verification, not the app.
+      expect(find.text('Verify your account'), findsOneWidget);
+      expect(find.text(_homeMarker), findsNothing);
     });
 
     testWidgets('shows a friendly error when saving fails', (tester) async {

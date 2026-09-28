@@ -1,6 +1,14 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Required in release builds for Supabase network access. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Live verification photo only, requested when verification starts. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <!-- The camera plugin declares these for video recording and old storage
+         APIs. Verification needs neither, so they are removed. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
     <application
         android:label="Grave Chemistry"
         android:name="${applicationName}"
