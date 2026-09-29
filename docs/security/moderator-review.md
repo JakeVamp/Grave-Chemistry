@@ -25,6 +25,25 @@ The app's Moderator tools screen asks for a 6-digit authenticator code (or
 sets up an authenticator first) when the session isn't `aal2` yet. Supabase
 Auth must have TOTP MFA enabled (it is by default).
 
+## Moderator accounts and member onboarding
+
+Moderator tools are a separate staff path. A signed-in account whose
+`app_metadata.role` is `moderator` can reach Moderator Home without a member
+profile or live-photo verification: while member onboarding is unfinished,
+the app sends it to Moderator Home instead of the dating app, and the MFA
+step still applies. This is navigation only and changes nothing on the
+server:
+
+- the database still requires the moderator role and MFA for every
+  moderator request (no profile is needed for them, and none is created)
+- `verification_status` is untouched; the account is not verified
+- Discovery eligibility is unchanged: an unfinished moderator account is
+  not eligible, has no visible photos and can't reach the dating app
+- child-safety holds and account checks apply as before
+
+A moderator can still choose "Set up member profile" and go through normal
+onboarding. Roles in `user_metadata` are ignored.
+
 ## Flow
 
 Home → Moderator tools (MFA) → Photo review (queue) → Review photo.
@@ -148,7 +167,5 @@ bytes, URLs or storage paths are logged.
 
 ## Limitations
 
-- Moderator accounts currently go through the same onboarding (profile and
-  verification) as members before reaching the app's tools.
 - iOS can't block screenshots.
 - The queue shows at most 50 items per refresh.

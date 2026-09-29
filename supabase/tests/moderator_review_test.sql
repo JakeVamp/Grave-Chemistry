@@ -332,3 +332,24 @@ select tests.check((select count(*) = 0 from public.moderator_photo_review_queue
 -- ---------------------------------------------------------------- queue after all decisions
 select tests.check((select count(*) = 0 from public.moderator_photo_review_queue()),
   'the queue is empty once every item is handled');
+
+-- ---------------------------------------------------------------- moderators without a member profile
+-- The moderator account in this file never created a dating profile or
+-- verified. Moderator tools work (above); dating eligibility does not.
+select tests.become_admin();
+select tests.check((select count(*) = 0 from public.profiles where id = :mod),
+  'moderator actions never create a dating profile for the moderator');
+select tests.check((select count(*) = 0 from private.verification_sessions where user_id = :mod),
+  'or a verification record');
+select tests.check(not private.is_discovery_eligible(:mod), 'an unverified moderator is not Discovery-eligible');
+select tests.become('authenticated', :mod, :mod_claims);
+select tests.check((select count(*) >= 0 from public.moderator_photo_review_queue()),
+  'moderator tools work without a member profile (role + MFA only)');
+select tests.check((public.get_my_discovery_eligibility() ->> 'eligible')::boolean = false
+  and (public.get_my_discovery_eligibility() -> 'reasons') ? 'profile_incomplete',
+  'the moderator role does not make the account dating-eligible');
+select tests.become('authenticated', :mod, :mod_no_mfa);
+select tests.expect_error('select * from public.moderator_photo_review_queue()', 'not_authorized',
+  'without MFA the moderator role alone still opens nothing');
+select tests.become('authenticated', :alice);
+select tests.check((select count(*) = 0 from public.get_profile_photos(:mod)), 'members cannot see the moderator');

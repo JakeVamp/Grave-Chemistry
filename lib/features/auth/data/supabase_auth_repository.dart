@@ -133,15 +133,8 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
-  static AuthUser? _toAuthUser(User? user) {
-    if (user == null) return null;
-    final role = user.appMetadata['role'];
-    return AuthUser(
-      id: user.id,
-      email: user.email,
-      role: role is String ? role : null,
-    );
-  }
+  static AuthUser? _toAuthUser(User? user) =>
+      user == null ? null : authUserFromSupabase(user);
 
   static AuthEventType _toEventType(AuthChangeEvent event) {
     return switch (event) {
@@ -152,4 +145,15 @@ class SupabaseAuthRepository implements AuthRepository {
       _ => AuthEventType.sessionRefreshed,
     };
   }
+}
+
+/// The role comes only from `app_metadata`, which only the service role can
+/// write. `user_metadata` is user-editable and is never read for roles.
+AuthUser authUserFromSupabase(User user) {
+  final role = user.appMetadata['role'];
+  return AuthUser(
+    id: user.id,
+    email: user.email,
+    role: role is String ? role : null,
+  );
 }
