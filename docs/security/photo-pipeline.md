@@ -207,12 +207,14 @@ Storage API, then records the result; repeats are no-ops.
 
 ## Moderator support
 
-With the moderator role and MFA:
+The in-app review tool is described in
+[moderator-review.md](moderator-review.md). With the moderator role and MFA:
 
 - `moderator_photos_awaiting_review()`: manual-review and failed photos
-  (never child-safety cases)
+  (never child-safety cases or held accounts)
 - `moderate_profile_photo(photo, approve|reject|remove)`: approval requires
-  successful validation, no child-safety result or case, no account hold
+  successful validation, no child-safety result or case, no account hold,
+  and (for moderators) that the photo is waiting for manual review
 - `moderator_retry_photo_processing(photo)`
 - `moderator_photo_review_context(photo)`: storage locations of the photo
   and the owner's latest approved verification photo, for side-by-side
@@ -229,7 +231,7 @@ Child-safety evidence still needs the `child_safety_reviewer` role.
   moderation provider); implement the adapter. Until then every photo
   needs a moderator.
 - Deploy both functions, set secrets, create the Cron jobs.
-- Build the moderator tool (signed URLs from a backend that re-checks the
-  role).
+- Deploy the moderator review tool's Edge Function
+  ([moderator-review.md](moderator-review.md)).
 - Load-test the worker; tune batch size and schedule.
 - Legal review of child-safety reporting (unchanged requirement).

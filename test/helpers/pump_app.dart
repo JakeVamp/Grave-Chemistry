@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grave_chemistry/app/app.dart';
 import 'package:grave_chemistry/features/auth/application/auth_providers.dart';
+import 'package:grave_chemistry/features/moderation/application/moderation_providers.dart';
 import 'package:grave_chemistry/features/profile/application/profile_providers.dart';
 import 'package:grave_chemistry/features/profile_photos/application/profile_photo_providers.dart';
 import 'package:grave_chemistry/features/verification/application/verification_providers.dart';
 
 import 'fake_auth_repository.dart';
+import 'fake_moderation.dart';
 import 'fake_profile_photos.dart';
 import 'fake_profile_repository.dart';
 import 'fake_verification.dart';
@@ -23,6 +25,9 @@ Future<void> pumpApp(
   FakeCameraFactory? cameras,
   FakeProfilePhotoRepository? photos,
   FakePhotoPicker? photoPicker,
+  FakeModerationRepository? moderation,
+  FakeModeratorMfaRepository? mfa,
+  FakeScreenSecurity? screenSecurity,
   Size logicalSize = const Size(390, 844),
   double textScale = 1,
   bool settle = true,
@@ -57,6 +62,15 @@ Future<void> pumpApp(
           photoPicker ?? FakePhotoPicker(result: pickedBytes),
         ),
         profilePhotoSanitizerProvider.overrideWithValue((bytes) async => bytes),
+        moderationRepositoryProvider.overrideWithValue(
+          moderation ?? FakeModerationRepository(),
+        ),
+        moderatorMfaRepositoryProvider.overrideWithValue(
+          mfa ?? FakeModeratorMfaRepository(),
+        ),
+        screenSecurityProvider.overrideWithValue(
+          screenSecurity ?? FakeScreenSecurity(),
+        ),
       ],
       child: const GraveChemistryApp(),
     ),

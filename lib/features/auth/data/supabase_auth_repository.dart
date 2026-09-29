@@ -135,7 +135,12 @@ class SupabaseAuthRepository implements AuthRepository {
 
   static AuthUser? _toAuthUser(User? user) {
     if (user == null) return null;
-    return AuthUser(id: user.id, email: user.email);
+    final role = user.appMetadata['role'];
+    return AuthUser(
+      id: user.id,
+      email: user.email,
+      role: role is String ? role : null,
+    );
   }
 
   static AuthEventType _toEventType(AuthChangeEvent event) {

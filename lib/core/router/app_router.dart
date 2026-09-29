@@ -13,6 +13,9 @@ import '../../features/discovery/presentation/discovery_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/matches/presentation/matches_screen.dart';
 import '../../features/messages/presentation/messages_screen.dart';
+import '../../features/moderation/presentation/moderator_home_screen.dart';
+import '../../features/moderation/presentation/photo_review_queue_screen.dart';
+import '../../features/moderation/presentation/photo_review_screen.dart';
 import '../../features/profile/application/profile_providers.dart';
 import '../../features/profile/presentation/profile_loading_screen.dart';
 import '../../features/profile/presentation/profile_setup_screen.dart';
@@ -112,6 +115,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.moderation,
+        builder: (context, state) => const ModeratorHomeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.photoReview,
+        builder: (context, state) => const PhotoReviewQueueScreen(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.photoReview}/:photoId',
+        builder: (context, state) =>
+            PhotoReviewScreen(photoId: state.pathParameters['photoId']!),
       ),
     ],
     errorBuilder: (context, state) => NotFoundScreen(location: state.uri),

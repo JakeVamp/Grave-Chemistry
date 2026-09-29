@@ -27,6 +27,15 @@ abstract final class AppRoutes {
   static const String settings = '/settings';
   static const String profilePhotos = '/profile/photos';
 
+  /// Moderator tools. Hidden from other users; every request is checked
+  /// again by the database (moderator role + MFA).
+  static const String moderation = '/moderation';
+  static const String photoReview = '/moderation/photos';
+  static String photoReviewItem(String photoId) => '$photoReview/$photoId';
+
+  static bool isModeratorRoute(String path) =>
+      path == moderation || path.startsWith('$moderation/');
+
   /// Screens for signed-out users.
   static bool isAuthRoute(String path) =>
       path == auth || path.startsWith('$auth/');
