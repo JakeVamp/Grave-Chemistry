@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
-/// Longest edge of the stored photo, enough for review.
+/// Longest edge of a stored photo.
 const _maxDimension = 1600;
 
 /// Re-encodes a captured photo as a plain JPEG: orientation applied, then
@@ -10,7 +10,7 @@ const _maxDimension = 1600;
 /// whatever isolate it's called from; use `compute` for large photos.
 ///
 /// Throws [FormatException] if the bytes aren't a decodable image.
-Uint8List sanitizeVerificationPhoto(Uint8List input) {
+Uint8List sanitizePhoto(Uint8List input) {
   img.Image? decoded;
   try {
     decoded = img.decodeImage(input);

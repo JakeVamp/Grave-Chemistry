@@ -43,7 +43,7 @@ select tests.expect_error($$update private.verification_sessions set status = 'a
 select tests.expect_error(format($$insert into storage.objects (bucket_id, name, owner_id) values ('verification-media', '%s/photo.jpg', auth.uid())$$, :alice),
   'row-level security', 'paths must be <session>/<random>.jpg, not user IDs');
 insert into storage.objects (bucket_id, name, owner_id) values ('verification-media', :'alice_path', auth.uid()::text);
-select tests.check((select count(*) = 1 from storage.objects where bucket_id = 'verification-media'), 'alice can read her own photo');
+select tests.check((select count(*) = 0 from storage.objects where bucket_id = 'verification-media'), 'owners cannot read back their verification photo (it can never be copied elsewhere)');
 
 select tests.become('authenticated', :bob);
 select tests.expect_error(format($$insert into storage.objects (bucket_id, name, owner_id) values ('verification-media', '%s/%s.jpg', auth.uid())$$,
