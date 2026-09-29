@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -26,6 +26,7 @@ import '../../features/verification/presentation/verification_screen.dart';
 import '../../shared/widgets/not_found_screen.dart';
 import 'app_routes.dart';
 import 'auth_guard.dart';
+import 'back_navigation.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Bridges Riverpod to go_router: the router re-runs its redirect whenever
@@ -51,86 +52,95 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) => _page(state, const HomeScreen()),
       ),
       GoRoute(
         path: AppRoutes.auth,
-        builder: (context, state) => const AuthScreen(),
+        builder: (context, state) => _page(state, const AuthScreen()),
       ),
       GoRoute(
         path: AppRoutes.signUp,
-        builder: (context, state) => const SignUpScreen(),
+        builder: (context, state) => _page(state, const SignUpScreen()),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
-        builder: (context, state) => ForgotPasswordScreen(
-          initialEmail: state.uri.queryParameters['email'] ?? '',
+        builder: (context, state) => _page(
+          state,
+          ForgotPasswordScreen(
+            initialEmail: state.uri.queryParameters['email'] ?? '',
+          ),
         ),
       ),
       GoRoute(
         path: AppRoutes.checkEmail,
         builder: (context, state) =>
-            CheckEmailScreen.fromQuery(state.uri.queryParameters),
+            _page(state, CheckEmailScreen.fromQuery(state.uri.queryParameters)),
       ),
       GoRoute(
         path: AppRoutes.resetPassword,
-        builder: (context, state) => const ResetPasswordScreen(),
+        builder: (context, state) => _page(state, const ResetPasswordScreen()),
       ),
       GoRoute(
         path: AppRoutes.profileSetup,
-        builder: (context, state) => const ProfileSetupScreen(),
+        builder: (context, state) => _page(state, const ProfileSetupScreen()),
       ),
       GoRoute(
         path: AppRoutes.profileLoading,
-        builder: (context, state) => const ProfileLoadingScreen(),
+        builder: (context, state) => _page(state, const ProfileLoadingScreen()),
       ),
       GoRoute(
         path: AppRoutes.verification,
-        builder: (context, state) => const VerificationScreen(),
+        builder: (context, state) => _page(state, const VerificationScreen()),
       ),
       GoRoute(
         path: AppRoutes.verificationRetry,
-        builder: (context, state) => const VerificationScreen(isRetry: true),
+        builder: (context, state) =>
+            _page(state, const VerificationScreen(isRetry: true)),
       ),
       GoRoute(
         path: AppRoutes.verificationPending,
-        builder: (context, state) => const VerificationPendingScreen(),
+        builder: (context, state) =>
+            _page(state, const VerificationPendingScreen()),
       ),
       GoRoute(
         path: AppRoutes.discovery,
-        builder: (context, state) => const DiscoveryScreen(),
+        builder: (context, state) => _page(state, const DiscoveryScreen()),
       ),
       GoRoute(
         path: AppRoutes.matches,
-        builder: (context, state) => const MatchesScreen(),
+        builder: (context, state) => _page(state, const MatchesScreen()),
       ),
       GoRoute(
         path: AppRoutes.messages,
-        builder: (context, state) => const MessagesScreen(),
+        builder: (context, state) => _page(state, const MessagesScreen()),
       ),
       GoRoute(
         path: AppRoutes.profilePhotos,
-        builder: (context, state) => const ProfilePhotosScreen(),
+        builder: (context, state) => _page(state, const ProfilePhotosScreen()),
       ),
       GoRoute(
         path: AppRoutes.settings,
-        builder: (context, state) => const SettingsScreen(),
+        builder: (context, state) => _page(state, const SettingsScreen()),
       ),
       GoRoute(
         path: AppRoutes.moderation,
-        builder: (context, state) => const ModeratorHomeScreen(),
+        builder: (context, state) => _page(state, const ModeratorHomeScreen()),
       ),
       GoRoute(
         path: AppRoutes.photoReview,
-        builder: (context, state) => const PhotoReviewQueueScreen(),
+        builder: (context, state) =>
+            _page(state, const PhotoReviewQueueScreen()),
       ),
       GoRoute(
         path: '${AppRoutes.photoReview}/:photoId',
-        builder: (context, state) =>
-            PhotoReviewScreen(photoId: state.pathParameters['photoId']!),
+        builder: (context, state) => _page(
+          state,
+          PhotoReviewScreen(photoId: state.pathParameters['photoId']!),
+        ),
       ),
     ],
-    errorBuilder: (context, state) => NotFoundScreen(location: state.uri),
+    errorBuilder: (context, state) =>
+        _page(state, NotFoundScreen(location: state.uri)),
   );
   ref.onDispose(() {
     router.dispose();
@@ -138,3 +148,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   });
   return router;
 });
+
+/// Every page gets Back handling based on its path.
+Widget _page(GoRouterState state, Widget child) =>
+    ParentBackScope(path: state.uri.path, child: child);

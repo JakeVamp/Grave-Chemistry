@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/utils/context_extensions.dart';
+import '../../../../core/router/back_navigation.dart';
 
 /// Shared frame for auth screens: app title, screen heading and content,
 /// centred and width-limited so it reads well on phones and tablets.
@@ -19,10 +20,12 @@ class AuthLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canPop = ModalRoute.of(context)?.canPop ?? false;
+    final back = appBackButton(context);
 
     return Scaffold(
-      appBar: canPop ? AppBar() : null,
+      appBar: back == null
+          ? null
+          : AppBar(leading: back, automaticallyImplyLeading: false),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

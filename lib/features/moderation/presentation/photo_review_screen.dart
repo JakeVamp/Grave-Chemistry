@@ -15,6 +15,7 @@ import '../domain/review_media.dart';
 import 'widgets/review_dialogs.dart';
 import 'widgets/review_facts.dart';
 import 'widgets/review_photo.dart';
+import '../../../core/router/back_navigation.dart';
 
 /// Side-by-side review of one profile photo against the owner's approved
 /// verification photo, by eye only: no face matching or scoring of any
@@ -132,6 +133,8 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: appBackButton(context),
+        automaticallyImplyLeading: false,
         title: const Text('Review photo'),
         actions: [
           IconButton(

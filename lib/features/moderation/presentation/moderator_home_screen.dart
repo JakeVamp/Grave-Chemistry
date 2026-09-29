@@ -4,24 +4,77 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_routes.dart';
+import '../../../core/router/auth_guard.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/utils/context_extensions.dart';
 import '../../../shared/widgets/loading_button.dart';
 import '../../../shared/widgets/message_banner.dart';
+import '../../auth/application/auth_providers.dart';
+import '../../profile/application/profile_providers.dart';
 import '../application/moderation_providers.dart';
 import '../domain/moderation_failure.dart';
 import '../domain/moderator_mfa.dart';
+import '../../../core/router/back_navigation.dart';
 
 /// Entry point for moderators. Tools unlock only once this session has
 /// passed two-factor verification, which the database also requires.
+///
+/// Reachable without a finished member profile: moderator tools are a
+/// separate staff path. That grants nothing in the dating app; the account
+/// stays unverified and invisible to members until it finishes onboarding
+/// like anyone else.
 class ModeratorHomeScreen extends ConsumerWidget {
   const ModeratorHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mfa = ref.watch(moderatorMfaProvider);
+    final memberSetupRoute = switch (ref.watch(onboardingGateProvider)) {
+      OnboardingGate.loading || OnboardingGate.error => null,
+      final gate => onboardingRouteFor(gate),
+    };
     return Scaffold(
-      appBar: AppBar(title: const Text('Moderator tools')),
+      appBar: AppBar(
+        leading: appBackButton(context),
+        automaticallyImplyLeading: false,
+        title: const Text('Moderator tools'),
+        actions: [
+          // Settings (and its sign-out) are part of the member app, which
+          // stays closed until member onboarding is done.
+          if (memberSetupRoute != null)
+            IconButton(
+              tooltip: 'Sign out',
+              icon: const Icon(Icons.logout),
+              onPressed: () =>
+                  ref.read(authControllerProvider.notifier).signOut(),
+            ),
+        ],
+      ),
+      bottomNavigationBar: memberSetupRoute == null
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Your member profile isn’t finished, so the dating app '
+                      'stays closed and members can’t see you. Moderator '
+                      'tools don’t need it.',
+                      textAlign: TextAlign.center,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go(memberSetupRoute),
+                      child: const Text('Set up member profile'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
       body: SafeArea(
         child: switch (mfa) {
           AsyncData(value: MfaVerified()) => const _Tools(),

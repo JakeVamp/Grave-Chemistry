@@ -8,6 +8,7 @@ import '../../../shared/utils/context_extensions.dart';
 import '../application/moderation_providers.dart';
 import '../domain/photo_review_item.dart';
 import 'widgets/review_facts.dart';
+import '../../../core/router/back_navigation.dart';
 
 /// Photos waiting for a moderator, oldest first. Child-safety matters never
 /// appear here; the server leaves them out.
@@ -19,6 +20,8 @@ class PhotoReviewQueueScreen extends ConsumerWidget {
     final queue = ref.watch(photoReviewQueueProvider);
     return Scaffold(
       appBar: AppBar(
+        leading: appBackButton(context),
+        automaticallyImplyLeading: false,
         title: const Text('Photo review'),
         actions: [
           IconButton(

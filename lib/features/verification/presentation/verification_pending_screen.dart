@@ -5,6 +5,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../shared/utils/context_extensions.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../profile/application/profile_providers.dart';
+import '../../../core/router/back_navigation.dart';
 
 /// Limited state after submitting a verification photo. Pending is not
 /// verified: the rest of the app stays closed until approval.
@@ -32,6 +33,7 @@ class _VerificationPendingScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Verification'),
+        leading: appBackButton(context),
         automaticallyImplyLeading: false,
         actions: [
           TextButton(

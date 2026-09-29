@@ -203,4 +203,124 @@ void main() {
       );
     });
   });
+
+  group('moderators with unfinished member onboarding', () {
+    const memberGates = [
+      OnboardingGate.profileIncomplete,
+      OnboardingGate.verificationRequired,
+      OnboardingGate.verificationRetry,
+      OnboardingGate.verificationPending,
+    ];
+    const moderatorPaths = [
+      AppRoutes.moderation,
+      AppRoutes.photoReview,
+      '/moderation/photos/abc',
+    ];
+    const datingPaths = [
+      AppRoutes.home,
+      AppRoutes.discovery,
+      AppRoutes.matches,
+      AppRoutes.messages,
+      AppRoutes.settings,
+      AppRoutes.profilePhotos,
+      AppRoutes.profileLoading,
+      '/does-not-exist',
+    ];
+
+    test('1. a normal incomplete user is still pinned to onboarding, '
+        'including away from moderator routes', () {
+      for (final gate in memberGates) {
+        final required = onboardingRouteFor(gate)!;
+        for (final path in [...datingPaths, ...moderatorPaths]) {
+          expect(
+            authGuard(const SignedIn(testUser), gate, path),
+            path == required ? isNull : required,
+            reason: '$gate $path',
+          );
+        }
+      }
+    });
+
+    test('2. an incomplete moderator lands on Moderator Home, and moderator '
+        'routes stay open', () {
+      for (final gate in memberGates) {
+        for (final path in moderatorPaths) {
+          expect(
+            authGuard(const SignedIn(moderatorUser), gate, path),
+            isNull,
+            reason: '$gate $path',
+          );
+        }
+        // Including right after sign-in, from the profile loading screen.
+        for (final path in datingPaths) {
+          expect(
+            authGuard(const SignedIn(moderatorUser), gate, path),
+            AppRoutes.moderation,
+            reason: '$gate $path',
+          );
+        }
+      }
+    });
+
+    test('5. moderator access opens no part of the dating app', () {
+      for (final gate in memberGates) {
+        for (final path in [
+          AppRoutes.home,
+          AppRoutes.discovery,
+          AppRoutes.matches,
+          AppRoutes.messages,
+          AppRoutes.profilePhotos,
+        ]) {
+          expect(
+            authGuard(const SignedIn(moderatorUser), gate, path),
+            isNot(isNull),
+            reason: '$gate $path',
+          );
+        }
+      }
+    });
+
+    test('an incomplete moderator can still choose member setup, and moves '
+        'on to the next step as usual', () {
+      for (final gate in memberGates) {
+        final required = onboardingRouteFor(gate)!;
+        expect(
+          authGuard(const SignedIn(moderatorUser), gate, required),
+          isNull,
+        );
+      }
+      // Profile saved: from profile setup on to verification.
+      expect(
+        authGuard(
+          const SignedIn(moderatorUser),
+          OnboardingGate.verificationRequired,
+          AppRoutes.profileSetup,
+        ),
+        AppRoutes.verification,
+      );
+    });
+
+    test('while the profile loads, moderator routes stay open and others '
+        'wait on the loading screen', () {
+      for (final gate in [OnboardingGate.loading, OnboardingGate.error]) {
+        for (final path in moderatorPaths) {
+          expect(authGuard(const SignedIn(moderatorUser), gate, path), isNull);
+        }
+        expect(
+          authGuard(const SignedIn(moderatorUser), gate, AppRoutes.home),
+          AppRoutes.profileLoading,
+        );
+      }
+    });
+
+    test('4. a role outside app_metadata grants nothing', () {
+      const imposter = AuthUser(id: 'u', email: null);
+      for (final gate in memberGates) {
+        expect(
+          authGuard(const SignedIn(imposter), gate, AppRoutes.moderation),
+          onboardingRouteFor(gate),
+        );
+      }
+    });
+  });
 }

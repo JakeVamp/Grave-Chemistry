@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../utils/context_extensions.dart';
+import '../../core/router/back_navigation.dart';
 
 /// Temporary scaffold for screens whose features are not built yet.
 class PlaceholderScreen extends StatelessWidget {
@@ -23,7 +24,11 @@ class PlaceholderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        leading: appBackButton(context),
+        automaticallyImplyLeading: false,
+        title: Text(title),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

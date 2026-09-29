@@ -16,6 +16,7 @@ import '../domain/profile_failure.dart';
 import '../domain/profile_validators.dart';
 import 'widgets/birth_date_field.dart';
 import 'widgets/choice_group_field.dart';
+import '../../../core/router/back_navigation.dart';
 
 /// First-time onboarding. The router keeps signed-in users here until the
 /// database reports their profile as complete.
@@ -149,6 +150,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create your profile'),
+        leading: appBackButton(context),
         automaticallyImplyLeading: false,
         actions: [
           TextButton(
