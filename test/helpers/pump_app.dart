@@ -4,9 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:grave_chemistry/app/app.dart';
 import 'package:grave_chemistry/features/auth/application/auth_providers.dart';
 import 'package:grave_chemistry/features/profile/application/profile_providers.dart';
+import 'package:grave_chemistry/features/profile_photos/application/profile_photo_providers.dart';
 import 'package:grave_chemistry/features/verification/application/verification_providers.dart';
 
 import 'fake_auth_repository.dart';
+import 'fake_profile_photos.dart';
 import 'fake_profile_repository.dart';
 import 'fake_verification.dart';
 
@@ -19,6 +21,8 @@ Future<void> pumpApp(
   FakeVerificationRepository? verification,
   FakeCameraPermissionService? cameraPermission,
   FakeCameraFactory? cameras,
+  FakeProfilePhotoRepository? photos,
+  FakePhotoPicker? photoPicker,
   Size logicalSize = const Size(390, 844),
   double textScale = 1,
   bool settle = true,
@@ -46,6 +50,13 @@ Future<void> pumpApp(
           (cameras ?? FakeCameraFactory()).call,
         ),
         photoSanitizerProvider.overrideWithValue((bytes) async => bytes),
+        profilePhotoRepositoryProvider.overrideWithValue(
+          photos ?? FakeProfilePhotoRepository(),
+        ),
+        photoPickerProvider.overrideWithValue(
+          photoPicker ?? FakePhotoPicker(result: pickedBytes),
+        ),
+        profilePhotoSanitizerProvider.overrideWithValue((bytes) async => bytes),
       ],
       child: const GraveChemistryApp(),
     ),

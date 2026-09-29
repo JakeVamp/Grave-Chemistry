@@ -16,6 +16,7 @@ import '../../features/messages/presentation/messages_screen.dart';
 import '../../features/profile/application/profile_providers.dart';
 import '../../features/profile/presentation/profile_loading_screen.dart';
 import '../../features/profile/presentation/profile_setup_screen.dart';
+import '../../features/profile_photos/presentation/profile_photos_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/verification/presentation/verification_pending_screen.dart';
 import '../../features/verification/presentation/verification_screen.dart';
@@ -103,6 +104,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.messages,
         builder: (context, state) => const MessagesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.profilePhotos,
+        builder: (context, state) => const ProfilePhotosScreen(),
       ),
       GoRoute(
         path: AppRoutes.settings,

@@ -156,6 +156,8 @@ Current migrations, in order:
    primitives, media/duplicate-image foundation, moderation audit
 6. `20260929120100_child_safety.sql`: child-safety cases, account holds,
    media quarantine, reviewer-only evidence access, evidence bucket
+7. `20260930100000_profile_photos.sql`: public profile photos, private
+   `profile-photos` bucket, visibility-gated storage policies, photo RPCs
 
 After applying them, check **Project Settings → Data API → Exposed
 schemas** and make sure `private` is **not** listed.
@@ -201,6 +203,15 @@ liveness provider can approve. See
 for the full design, trust boundaries, retention and what production
 automation still needs.
 
+## Public profile photos
+
+Users add up to 6 photos from their library (Home → Profile photos). Each
+is stripped of metadata, uploaded to the private `profile-photos` bucket and
+reviewed before anyone else can see it; approved photos are only served
+through signed URLs to eligible viewers. Verification photos are a separate
+system and can never become profile photos. See
+[docs/security/profile-photos.md](docs/security/profile-photos.md).
+
 ## Trust, safety and child safety
 
 Server-side foundations for Discovery and messaging: eligibility checks,
@@ -245,6 +256,7 @@ lib/
 │   ├── matches/presentation/
 │   ├── messages/presentation/
 │   ├── profile/                  # domain/ data/ application/ presentation/
+│   ├── profile_photos/           # domain/ data/ application/ presentation/
 │   ├── verification/             # domain/ data/ application/ presentation/
 │   └── settings/presentation/
 └── shared/                       # Reusable, feature-agnostic code

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/supabase/supabase_providers.dart';
 import '../data/device_camera.dart';
 import '../data/device_camera_permission.dart';
-import '../data/photo_sanitizer.dart';
+import '../../../shared/media/photo_sanitizer.dart';
 import '../data/supabase_verification_repository.dart';
 import '../domain/camera_permission.dart';
 import '../domain/verification_repository.dart';
@@ -29,7 +29,7 @@ final verificationCameraFactoryProvider =
 /// Strips metadata off a captured photo, off the UI isolate.
 final photoSanitizerProvider = Provider<Future<Uint8List> Function(Uint8List)>(
   (ref) =>
-      (bytes) => compute(sanitizeVerificationPhoto, bytes),
+      (bytes) => compute(sanitizePhoto, bytes),
 );
 
 final verificationClockProvider = Provider<DateTime Function()>(

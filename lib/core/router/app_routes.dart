@@ -25,6 +25,7 @@ abstract final class AppRoutes {
   static const String matches = '/matches';
   static const String messages = '/messages';
   static const String settings = '/settings';
+  static const String profilePhotos = '/profile/photos';
 
   /// Screens for signed-out users.
   static bool isAuthRoute(String path) =>
