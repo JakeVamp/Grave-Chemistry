@@ -80,7 +80,20 @@ class _ProfilePhotosScreenState extends ConsumerState<ProfilePhotosScreen> {
     final uploader = ref.read(photoUploadProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile photos')),
+      appBar: AppBar(
+        title: const Text('Profile photos'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+            onPressed: _working
+                ? null
+                : () => _run(
+                    () => ref.read(profilePhotosProvider.notifier).refresh(),
+                  ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: switch (photos) {
           AsyncData(value: final list) => _buildList(
@@ -158,9 +171,19 @@ class _ProfilePhotosScreenState extends ConsumerState<ProfilePhotosScreen> {
             const SizedBox(height: AppSpacing.md),
             MessageBanner(
               message: upload.failure!.message,
-              action: TextButton(
-                onPressed: uploader.dismissFailure,
-                child: const Text('Dismiss'),
+              action: Wrap(
+                alignment: WrapAlignment.end,
+                children: [
+                  if (upload.canRetry)
+                    TextButton(
+                      onPressed: uploader.retry,
+                      child: const Text('Try again'),
+                    ),
+                  TextButton(
+                    onPressed: uploader.dismissFailure,
+                    child: const Text('Dismiss'),
+                  ),
+                ],
               ),
             ),
           ],

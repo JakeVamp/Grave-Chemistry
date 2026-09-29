@@ -46,6 +46,7 @@ create table storage.objects (
   bucket_id text references storage.buckets (id),
   name text not null,
   owner_id text,
+  metadata jsonb,
   created_at timestamptz default now(),
   unique (bucket_id, name)
 );

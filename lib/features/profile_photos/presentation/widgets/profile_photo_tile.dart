@@ -51,6 +51,15 @@ class ProfilePhotoTile extends StatelessWidget {
                       _StatusBadge(status: photo.status),
                     ],
                   ),
+                  if (_hint(photo.status) case final hint?) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      hint,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -86,6 +95,15 @@ class ProfilePhotoTile extends StatelessWidget {
     );
   }
 }
+
+/// Plain-language help for the owner. Never mentions why a photo is held
+/// or rejected.
+String? _hint(PhotoReviewStatus status) => switch (status) {
+  PhotoReviewStatus.inReview => 'Checking this photo. Only you can see it.',
+  PhotoReviewStatus.notApproved =>
+    "This photo wasn't approved. Delete it and try another.",
+  PhotoReviewStatus.live => null,
+};
 
 class _Thumbnail extends ConsumerWidget {
   const _Thumbnail({required this.photo});

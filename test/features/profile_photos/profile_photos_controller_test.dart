@@ -86,6 +86,70 @@ void main() {
     expect(c.read(photoUploadProvider).failure, isNull);
   });
 
+  test('a network failure can be retried without re-uploading', () async {
+    repo.nextCompleteFailure = const ProfilePhotoFailure(
+      ProfilePhotoFailureType.network,
+      'offline',
+    );
+    final c = createContainer();
+    await c.read(profilePhotosProvider.future);
+    final uploader = c.read(photoUploadProvider.notifier);
+
+    expect(await uploader.pickAndUpload(), isFalse);
+    expect(c.read(photoUploadProvider).canRetry, isTrue);
+
+    expect(await uploader.retry(), isTrue);
+    expect(repo.calls, ['reserve', 'upload:p1', 'complete:p1', 'complete:p1']);
+    expect(c.read(profilePhotosProvider).value, hasLength(1));
+    expect(picker.picks, 1, reason: 'the same photo is reused');
+  });
+
+  test('a failed file upload is retried into the same slot', () async {
+    repo.nextUploadFailure = const ProfilePhotoFailure(
+      ProfilePhotoFailureType.uploadFailed,
+      'failed',
+    );
+    final c = createContainer();
+    await c.read(profilePhotosProvider.future);
+    final uploader = c.read(photoUploadProvider.notifier);
+    await uploader.pickAndUpload();
+    await uploader.retry();
+
+    expect(repo.calls, ['reserve', 'upload:p1', 'upload:p1', 'complete:p1']);
+  });
+
+  test('an expired slot is replaced on retry', () async {
+    repo.nextCompleteFailure = const ProfilePhotoFailure(
+      ProfilePhotoFailureType.notFound,
+      'gone',
+    );
+    final c = createContainer();
+    await c.read(profilePhotosProvider.future);
+    final uploader = c.read(photoUploadProvider.notifier);
+    await uploader.pickAndUpload();
+    await uploader.retry();
+
+    expect(repo.calls, [
+      'reserve',
+      'upload:p1',
+      'complete:p1',
+      'reserve',
+      'upload:p2',
+      'complete:p2',
+    ]);
+  });
+
+  test('limits are not retryable', () async {
+    repo.nextReserveFailure = const ProfilePhotoFailure(
+      ProfilePhotoFailureType.limitReached,
+      'limit',
+    );
+    final c = createContainer();
+    await c.read(photoUploadProvider.notifier).pickAndUpload();
+    expect(c.read(photoUploadProvider).canRetry, isFalse);
+    expect(await c.read(photoUploadProvider.notifier).retry(), isFalse);
+  });
+
   test('unreadable images are rejected before reserving a slot', () async {
     final c = ProviderContainer(
       overrides: [

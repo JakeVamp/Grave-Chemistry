@@ -32,14 +32,11 @@ accepts an object at the exact path the server reserved.
 3. **Complete:** `complete_profile_photo_upload()` confirms the file exists,
    moves the asset to `pending_scan` and adds it to the user's photos (first
    photo becomes primary).
-4. **Pipeline (to build):** a trusted backend with the service role
-   - computes SHA-256 and a 64-bit perceptual hash, calls
-     `record_profile_photo_fingerprints()` (cross-account matches create
-     `reused_public_image` review signals, never bans),
-   - sends the image to a child-safety provider; a match calls
-     `report_child_safety_media_match()` (quarantine + hold + case),
-   - otherwise approves or rejects with `moderate_profile_photo()`.
-   Moderators (role + MFA) can also approve, reject or remove.
+4. **Pipeline:** a trusted backend worker validates, strips metadata,
+   fingerprints and scans the photo; the database decides approval,
+   rejection, quarantine or manual review. See
+   [photo-pipeline.md](photo-pipeline.md). Moderators (role + MFA) can also
+   approve (only after successful processing), reject or remove.
 5. **Serve:** approved photos are listed by `get_profile_photos(user)` and
    read through signed URLs.
 
@@ -101,5 +98,5 @@ is only reachable through the reviewer-only audited function.
 - Confirm the `profile-photos` bucket is private with the 5 MB / JPEG limits.
 - If policy creation fails with "must be owner of table objects", create the
   two policies from the migration in Storage → Policies.
-- Build and schedule the upload pipeline and the deletion-queue worker
-  (Storage API deletes), as described above.
+- Deploy and schedule the processing and clean-up functions
+  (see [photo-pipeline.md](photo-pipeline.md)).

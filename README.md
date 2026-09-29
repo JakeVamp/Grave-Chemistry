@@ -158,6 +158,8 @@ Current migrations, in order:
    media quarantine, reviewer-only evidence access, evidence bucket
 7. `20260930100000_profile_photos.sql`: public profile photos, private
    `profile-photos` bucket, visibility-gated storage policies, photo RPCs
+8. `20260930120000_photo_processing_pipeline.sql`: photo processing
+   states, worker/moderator functions, audit log, storage clean-up queue
 
 After applying them, check **Project Settings → Data API → Exposed
 schemas** and make sure `private` is **not** listed.
@@ -207,8 +209,9 @@ automation still needs.
 
 Users add up to 6 photos from their library (Home → Profile photos). Each
 is stripped of metadata, uploaded to the private `profile-photos` bucket and
-reviewed before anyone else can see it; approved photos are only served
-through signed URLs to eligible viewers. Verification photos are a separate
+reviewed before anyone else can see it by the processing pipeline
+([docs/security/photo-pipeline.md](docs/security/photo-pipeline.md));
+approved photos are only served through signed URLs to eligible viewers. Verification photos are a separate
 system and can never become profile photos. See
 [docs/security/profile-photos.md](docs/security/profile-photos.md).
 
@@ -227,6 +230,7 @@ dart format lib test            # format
 flutter analyze                 # static analysis
 flutter test                    # unit + widget tests
 tool/test_database.sh           # SQL migration + security tests
+tool/test_functions.sh          # Edge Function tests (needs Deno)
 flutter run --dart-define-from-file=env/dev.json
 
 # Release builds
@@ -266,6 +270,7 @@ test/                             # Mirrors lib/
 env/
 └── example.json                  # Template for local env files (committed)
 supabase/
+├── functions/                    # Edge Functions (Deno): photo pipeline, clean-up
 ├── migrations/                   # Versioned SQL, applied in filename order
 └── tests/                        # SQL security tests (tool/test_database.sh)
 docs/security/                    # Security design documents

@@ -61,7 +61,9 @@ select tests.check((select count(*) = 1 from private.abuse_signals where user_id
   'attempted phone reuse is flagged');
 select tests.expect_error($$insert into private.phone_identities (user_id, phone_hash) values ('22222222-2222-2222-2222-222222222222', private.hash_identifier('+15551234567'))$$,
   'phone_identities_one_active_account_idx', 'uniqueness is enforced by the database itself');
-select tests.check((select count(*) = 0 from private.phone_identities where phone_hash like '%555%'), 'phone numbers are stored hashed');
+select tests.check((select bool_and(phone_hash ~ '^[0-9a-f]{64}$' and phone_hash <> '+15551234567'
+  and phone_hash <> encode(extensions.digest('+15551234567', 'sha256'), 'hex')) from private.phone_identities),
+  'phone numbers are stored as keyed hashes, not plain or unkeyed');
 select tests.check((select count(*) = 0 from information_schema.columns where table_schema = 'public' and column_name ilike '%phone%'),
   'no phone columns in public tables');
 select tests.check(private.link_verified_phone(:bob, '12345') = 'invalid_phone', 'phone numbers must be E.164');
