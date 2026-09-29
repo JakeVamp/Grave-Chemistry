@@ -145,6 +145,68 @@ void main() {
     expect(find.text('1 of 6 photos'), findsOneWidget);
   });
 
+  testWidgets('a failed upload offers Try again, which completes it', (
+    tester,
+  ) async {
+    final repo = FakeProfilePhotoRepository()
+      ..nextCompleteFailure = const ProfilePhotoFailure(
+        ProfilePhotoFailureType.network,
+        'Unable to connect. Check your internet connection and try again.',
+      );
+    await pumpApp(
+      tester,
+      FakeAuthRepository(currentUser: testUser),
+      photos: repo,
+    );
+    await tester.tapAndSettle(find.text('Profile photos'));
+    await tester.tapAndSettle(find.text('Add photo'));
+
+    expect(find.textContaining('internet connection'), findsOneWidget);
+    await tester.tapAndSettle(find.text('Try again'));
+    expect(find.text('1 of 6 photos'), findsOneWidget);
+    expect(find.text('In review'), findsOneWidget);
+  });
+
+  testWidgets('refresh shows review results without internal details', (
+    tester,
+  ) async {
+    final repo = await openPhotos(
+      tester,
+      initial: [
+        photo('a', 1, primary: true, status: PhotoReviewStatus.inReview),
+      ],
+    );
+    expect(find.textContaining('Checking this photo'), findsOneWidget);
+
+    repo.photos = [
+      photo('a', 1, primary: true, status: PhotoReviewStatus.notApproved),
+    ];
+    await tester.tapAndSettle(find.byTooltip('Refresh'));
+    expect(find.text('Not approved'), findsOneWidget);
+    expect(find.textContaining("wasn't approved"), findsOneWidget);
+    for (final hidden in [
+      'duplicate',
+      'risk',
+      'provider',
+      'child',
+      'moderator',
+    ]) {
+      expect(
+        find.textContaining(RegExp(hidden, caseSensitive: false)),
+        findsNothing,
+        reason: hidden,
+      );
+    }
+
+    repo.photos = [];
+    await tester.tapAndSettle(find.byTooltip('Refresh'));
+    expect(
+      find.text('No photos yet.'),
+      findsOneWidget,
+      reason: 'removed photos disappear',
+    );
+  });
+
   testWidgets('fits a small phone with 2x text', (tester) async {
     await openPhotos(
       tester,

@@ -95,10 +95,17 @@ class ProfilePhotosController extends AsyncNotifier<List<ProfilePhoto>> {
 enum PhotoUploadStage { idle, preparing, uploading, finishing }
 
 class PhotoUploadState {
-  const PhotoUploadState({this.stage = PhotoUploadStage.idle, this.failure});
+  const PhotoUploadState({
+    this.stage = PhotoUploadStage.idle,
+    this.failure,
+    this.canRetry = false,
+  });
 
   final PhotoUploadStage stage;
   final ProfilePhotoFailure? failure;
+
+  /// Whether the last failure can be retried with the same photo.
+  final bool canRetry;
 
   bool get isBusy => stage != PhotoUploadStage.idle;
 
@@ -118,7 +125,19 @@ class PhotoUploadState {
   };
 }
 
+/// An upload in progress, kept so a failed attempt can resume where it
+/// stopped instead of starting over.
+class _PendingUpload {
+  _PendingUpload(this.jpeg);
+
+  final Uint8List jpeg;
+  PhotoUploadSlot? slot;
+  bool uploaded = false;
+}
+
 class PhotoUploadController extends Notifier<PhotoUploadState> {
+  _PendingUpload? _pending;
+
   @override
   PhotoUploadState build() => const PhotoUploadState();
 
@@ -130,33 +149,74 @@ class PhotoUploadController extends Notifier<PhotoUploadState> {
     if (picked == null || !ref.mounted) return false;
 
     state = const PhotoUploadState(stage: PhotoUploadStage.preparing);
-    final repository = ref.read(profilePhotoRepositoryProvider);
+    final Uint8List jpeg;
     try {
-      final Uint8List jpeg;
-      try {
-        jpeg = await ref.read(profilePhotoSanitizerProvider)(picked);
-      } on FormatException {
-        throw const ProfilePhotoFailure(
-          ProfilePhotoFailureType.invalidImage,
-          "That file couldn't be read as a photo. Please choose another.",
+      jpeg = await ref.read(profilePhotoSanitizerProvider)(picked);
+    } on FormatException {
+      if (ref.mounted) {
+        state = const PhotoUploadState(
+          failure: ProfilePhotoFailure(
+            ProfilePhotoFailureType.invalidImage,
+            "That file couldn't be read as a photo. Please choose another.",
+          ),
         );
       }
-      final slot = await repository.reserveUpload();
-      if (!ref.mounted) return false;
-      state = const PhotoUploadState(stage: PhotoUploadStage.uploading);
-      await repository.uploadFile(slot, jpeg);
-      if (!ref.mounted) return false;
-      state = const PhotoUploadState(stage: PhotoUploadStage.finishing);
-      await repository.completeUpload(slot);
-    } on ProfilePhotoFailure catch (failure) {
-      if (ref.mounted) state = PhotoUploadState(failure: failure);
       return false;
     }
+    _pending = _PendingUpload(jpeg);
+    return _send();
+  }
+
+  /// Retries the last failed upload with the same photo.
+  Future<bool> retry() async {
+    if (state.isBusy || _pending == null) return false;
+    return _send();
+  }
+
+  void dismissFailure() {
+    _pending = null;
+    state = const PhotoUploadState();
+  }
+
+  Future<bool> _send() async {
+    final pending = _pending!;
+    final repository = ref.read(profilePhotoRepositoryProvider);
+    try {
+      pending.slot ??= await repository.reserveUpload();
+      if (!ref.mounted) return false;
+      if (!pending.uploaded) {
+        state = const PhotoUploadState(stage: PhotoUploadStage.uploading);
+        await repository.uploadFile(pending.slot!, pending.jpeg);
+        pending.uploaded = true;
+      }
+      if (!ref.mounted) return false;
+      state = const PhotoUploadState(stage: PhotoUploadStage.finishing);
+      await repository.completeUpload(pending.slot!);
+    } on ProfilePhotoFailure catch (failure) {
+      final retryable = switch (failure.type) {
+        ProfilePhotoFailureType.network ||
+        ProfilePhotoFailureType.uploadFailed ||
+        ProfilePhotoFailureType.unknown => true,
+        // The reserved slot expired: start again with a fresh one.
+        ProfilePhotoFailureType.notFound => true,
+        _ => false,
+      };
+      if (failure.type == ProfilePhotoFailureType.notFound) {
+        pending.slot = null;
+        pending.uploaded = false;
+      } else if (failure.type == ProfilePhotoFailureType.uploadFailed) {
+        pending.uploaded = false;
+      }
+      if (!retryable) _pending = null;
+      if (ref.mounted) {
+        state = PhotoUploadState(failure: failure, canRetry: retryable);
+      }
+      return false;
+    }
+    _pending = null;
     if (!ref.mounted) return true;
     state = const PhotoUploadState();
     await ref.read(profilePhotosProvider.notifier).refresh();
     return true;
   }
-
-  void dismissFailure() => state = const PhotoUploadState();
 }

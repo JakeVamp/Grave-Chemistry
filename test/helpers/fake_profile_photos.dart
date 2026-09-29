@@ -20,6 +20,7 @@ class FakeProfilePhotoRepository implements ProfilePhotoRepository {
   ProfilePhotoFailure? nextReserveFailure;
   ProfilePhotoFailure? nextUploadFailure;
   ProfilePhotoFailure? nextDeleteFailure;
+  ProfilePhotoFailure? nextCompleteFailure;
 
   /// When set, uploads wait for it, to observe progress.
   Completer<void>? uploadGate;
@@ -60,6 +61,11 @@ class FakeProfilePhotoRepository implements ProfilePhotoRepository {
   @override
   Future<void> completeUpload(PhotoUploadSlot slot) async {
     calls.add('complete:${slot.assetId}');
+    final failure = nextCompleteFailure;
+    if (failure != null) {
+      nextCompleteFailure = null;
+      throw failure;
+    }
     photos.add(
       ProfilePhoto(
         id: slot.assetId,

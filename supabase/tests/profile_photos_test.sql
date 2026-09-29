@@ -19,25 +19,12 @@ insert into public.profiles (id, display_name, birth_date, location_city, locati
   gender, community_identity, dating_preference)
 values (:erin, 'Erin', '1992-01-01', 'Salem', 'MA', 'agender', 'normie', 'normie_seeking_goth');
 
--- Uploads a synthetic photo as the given user; returns the photo id.
-create function tests.upload_photo(p_user uuid) returns uuid language plpgsql as $$
-declare
-  r jsonb;
-begin
-  perform tests.become('authenticated', p_user);
-  r := public.begin_profile_photo_upload();
-  insert into storage.objects (bucket_id, name, owner_id)
-  values ('profile-photos', r ->> 'object_path', p_user::text);
-  perform public.complete_profile_photo_upload((r ->> 'asset_id')::uuid);
-  perform tests.become_admin();
-  return (r ->> 'asset_id')::uuid;
-end $$;
-
+-- Approval now goes through the processing pipeline.
 create function tests.approve(p_photo uuid) returns void language plpgsql as $$
 begin
-  perform tests.become('service_role', null);
-  perform public.moderate_profile_photo(p_photo, 'approve');
-  perform tests.become_admin();
+  if tests.process_photo(p_photo) <> 'approved' then
+    raise exception 'pipeline did not approve %', p_photo;
+  end if;
 end $$;
 
 select tests.check((select public = false and file_size_limit = 5242880 and allowed_mime_types = array['image/jpeg']
@@ -56,7 +43,7 @@ select tests.expect_error(format($$insert into storage.objects (bucket_id, name,
   :'a1_path'), 'row-level security', 'nobody else can fill your upload slot');
 select tests.check((public.complete_profile_photo_upload(:'a1') ->> 'outcome') = 'not_found', 'nobody else can complete your upload');
 select tests.become('authenticated', :alice);
-insert into storage.objects (bucket_id, name, owner_id) values ('profile-photos', :'a1_path', auth.uid()::text);
+insert into storage.objects (bucket_id, name, owner_id, metadata) values ('profile-photos', :'a1_path', auth.uid()::text, '{"size": 1000, "mimetype": "image/jpeg"}');
 select tests.check((public.complete_profile_photo_upload(:'a1') ->> 'outcome') = 'added', 'owner completes the upload');
 select tests.check((select status = 'in_review' and is_primary and "position" = 1 from public.my_profile_photos()),
   'the first photo is primary and in review');
@@ -90,6 +77,7 @@ select tests.check((select count(*) = 1 from storage.objects where bucket_id = '
 select tests.become('authenticated', :alice);
 select tests.check((select status = 'live' from public.my_profile_photos()), 'owner sees the photo as live');
 select tests.upload_photo(:carol) as c1 \gset
+select tests.check(tests.process_photo(:'c1', 'clear', 'manual_review') = 'manual_review', 'setup: photo waits for a moderator');
 select tests.become('authenticated', :mod, :mod_claims);
 select public.moderate_profile_photo(:'c1', 'approve', 'fine');
 select tests.become_admin();
@@ -168,11 +156,10 @@ select tests.check((select count(*) >= 3 from private.profile_change_events wher
   'photo changes count as significant profile changes');
 
 -- ---------------------------------------------------------------- duplicates
-select tests.become('service_role', null);
-select public.record_profile_photo_fingerprints(:'a1', repeat('ab', 32), repeat('10', 32));
-select tests.check(public.record_profile_photo_fingerprints(:'b1', repeat('ab', 32), repeat('10', 32)) = 1,
-  'an exact copy of another account''s photo is detected');
-select tests.become_admin();
+-- a1 was fingerprinted by the pipeline when approved; b1 reuses the image.
+select encode(extensions.digest(:'a1', 'sha256'), 'hex') as a1_sha \gset
+select tests.check(tests.process_photo(:'b1', 'clear', 'approve', :'a1_sha') = 'manual_review',
+  'an exact copy of another account''s photo goes to manual review, not live');
 select tests.check((select count(*) = 1 from private.abuse_signals where user_id = :bob and signal_type = 'reused_public_image'),
   'reuse creates a review signal');
 select tests.check((select status = 'active' from private.accounts where user_id = :bob), 'duplicates never ban automatically');
