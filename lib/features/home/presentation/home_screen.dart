@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/utils/context_extensions.dart';
+import '../../auth/application/auth_providers.dart';
+import '../../auth/domain/auth_status.dart';
 
 /// Temporary hub that links to every placeholder screen during early
 /// development. Will be replaced once real navigation flows are designed.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   static const _destinations = <_Destination>[
@@ -22,8 +25,24 @@ class HomeScreen extends StatelessWidget {
     _Destination('Settings', Icons.settings_outlined, AppRoutes.settings),
   ];
 
+  /// Shown only to moderators. Navigation only: the database checks the
+  /// moderator role and MFA on every moderator request.
+  static const _moderatorDestination = _Destination(
+    'Moderator tools',
+    Icons.admin_panel_settings_outlined,
+    AppRoutes.moderation,
+  );
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isModerator = switch (ref.watch(authControllerProvider)) {
+      SignedIn(:final user) => user.isModerator,
+      _ => false,
+    };
+    final destinations = [
+      ..._destinations,
+      if (isModerator) _moderatorDestination,
+    ];
     return Scaffold(
       appBar: AppBar(title: const Text('Grave Chemistry')),
       body: SafeArea(
@@ -37,7 +56,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            for (final destination in _destinations)
+            for (final destination in destinations)
               Card(
                 child: ListTile(
                   leading: Icon(destination.icon),

@@ -2,14 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:grave_chemistry/core/router/app_routes.dart';
 import 'package:grave_chemistry/core/router/auth_guard.dart';
 import 'package:grave_chemistry/features/auth/domain/auth_status.dart';
+import 'package:grave_chemistry/features/auth/domain/auth_user.dart';
 import 'package:grave_chemistry/features/profile/application/profile_providers.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_moderation.dart';
 
 void main() {
   const statuses = <AuthStatus>[
     SignedOut(),
     SignedIn(testUser),
+    SignedIn(moderatorUser),
     PasswordRecovery(testUser),
   ];
 
@@ -29,6 +32,10 @@ void main() {
     AppRoutes.matches,
     AppRoutes.messages,
     AppRoutes.settings,
+    AppRoutes.moderation,
+    AppRoutes.photoReview,
+    '/moderation/photos/abc',
+    '/moderationx',
     '/does-not-exist',
     '/authentic', // looks like /auth but isn't an auth route
   ];
@@ -144,5 +151,56 @@ void main() {
         );
       }
     }
+  });
+
+  group('moderator routes', () {
+    const moderatorPaths = [
+      AppRoutes.moderation,
+      AppRoutes.photoReview,
+      '/moderation/photos/abc',
+    ];
+
+    test('members who are not moderators are sent home', () {
+      for (final path in moderatorPaths) {
+        expect(
+          authGuard(const SignedIn(testUser), OnboardingGate.ready, path),
+          AppRoutes.home,
+          reason: path,
+        );
+      }
+      expect(
+        authGuard(
+          const SignedIn(
+            AuthUser(id: 'u', email: null, role: 'child_safety_reviewer'),
+          ),
+          OnboardingGate.ready,
+          AppRoutes.photoReview,
+        ),
+        AppRoutes.home,
+        reason: 'the child-safety reviewer role is separate',
+      );
+    });
+
+    test('moderators may open them once onboarded', () {
+      for (final path in moderatorPaths) {
+        expect(
+          authGuard(const SignedIn(moderatorUser), OnboardingGate.ready, path),
+          isNull,
+          reason: path,
+        );
+      }
+    });
+
+    test('a look-alike path is not a moderator route', () {
+      expect(AppRoutes.isModeratorRoute('/moderationx'), isFalse);
+      expect(
+        authGuard(
+          const SignedIn(testUser),
+          OnboardingGate.ready,
+          '/moderationx',
+        ),
+        isNull,
+      );
+    });
   });
 }

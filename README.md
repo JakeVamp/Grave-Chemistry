@@ -160,6 +160,8 @@ Current migrations, in order:
    `profile-photos` bucket, visibility-gated storage policies, photo RPCs
 8. `20260930120000_photo_processing_pipeline.sql`: photo processing
    states, worker/moderator functions, audit log, storage clean-up queue
+9. `20261001100000_moderator_photo_review.sql`: moderator review queue,
+   private moderator notes, audited moderator photo actions
 
 After applying them, check **Project Settings → Data API → Exposed
 schemas** and make sure `private` is **not** listed.
@@ -214,6 +216,10 @@ reviewed before anyone else can see it by the processing pipeline
 approved photos are only served through signed URLs to eligible viewers. Verification photos are a separate
 system and can never become profile photos. See
 [docs/security/profile-photos.md](docs/security/profile-photos.md).
+
+Moderators (the `moderator` role, with two-factor verification) review
+photos in the app under Home → Moderator tools. See
+[docs/security/moderator-review.md](docs/security/moderator-review.md).
 
 ## Trust, safety and child safety
 
@@ -270,7 +276,7 @@ test/                             # Mirrors lib/
 env/
 └── example.json                  # Template for local env files (committed)
 supabase/
-├── functions/                    # Edge Functions (Deno): photo pipeline, clean-up
+├── functions/                    # Edge Functions (Deno): photo pipeline, clean-up, review media
 ├── migrations/                   # Versioned SQL, applied in filename order
 └── tests/                        # SQL security tests (tool/test_database.sh)
 docs/security/                    # Security design documents

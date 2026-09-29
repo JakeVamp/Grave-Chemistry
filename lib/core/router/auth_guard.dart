@@ -28,9 +28,14 @@ String? authGuard(AuthStatus status, OnboardingGate onboarding, String path) {
       return path == AppRoutes.resetPassword ? null : AppRoutes.resetPassword;
     case SignedOut():
       return onAuthRoute ? null : AppRoutes.auth;
-    case SignedIn():
+    case SignedIn(:final user):
       final required = _onboardingRoutes[onboarding];
       if (required != null) return path == required ? null : required;
+
+      // Navigation only: the database refuses moderator requests anyway.
+      if (AppRoutes.isModeratorRoute(path) && !user.isModerator) {
+        return AppRoutes.home;
+      }
 
       final isGatingRoute =
           onAuthRoute ||
