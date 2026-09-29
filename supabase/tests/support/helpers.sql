@@ -54,3 +54,18 @@ insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com'),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com'),
   ('99999999-9999-9999-9999-999999999999', 'mod@example.com');
+
+-- Creates (or completes) a user who meets every Discovery requirement.
+create function tests.make_eligible(p_id uuid, p_name text) returns void
+language plpgsql as $$
+begin
+  insert into auth.users (id, email, email_confirmed_at)
+  values (p_id, lower(p_name) || '@example.com', now())
+  on conflict (id) do update set email_confirmed_at = now();
+  insert into public.profiles (id, display_name, birth_date, location_city,
+    location_state_or_region, gender, community_identity, dating_preference)
+  values (p_id, p_name, '1990-01-01', 'Salem', 'MA', 'woman', 'goth', 'goth_seeking_goth')
+  on conflict (id) do nothing;
+  update public.profiles set verification_status = 'verified' where id = p_id;
+  update private.accounts set status = 'active' where user_id = p_id;
+end $$;

@@ -210,7 +210,7 @@ a maximum pending age.
   until approval, then `active`; `restricted`, `suspended` and
   `deletion_pending` are set by moderators only. The app does not act on
   these statuses yet.
-- **Flags:** `private.duplicate_account_flags` holds signals for human
+- **Flags:** `private.abuse_signals` (generalised in the trust & safety migration) holds signals for human
   review. No signal, and certainly not a shared IP, suspends an account
   automatically.
 
