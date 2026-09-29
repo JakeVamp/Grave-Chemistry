@@ -36,6 +36,32 @@ abstract final class AppRoutes {
   static bool isModeratorRoute(String path) =>
       path == moderation || path.startsWith('$moderation/');
 
+  /// The screen Back leads to when there is no page to pop, or null for
+  /// root screens. Back is only offered when the router would also allow
+  /// the parent (see `back_navigation.dart`), so this map never has to
+  /// encode access rules.
+  static String? parentOf(String path) {
+    if (path == home ||
+        path == auth ||
+        path == resetPassword ||
+        path == profileLoading) {
+      return null;
+    }
+    if (isAuthRoute(path)) return auth;
+    // Member onboarding has no earlier step to return to. For moderators,
+    // who may open it from Moderator Home, that is where Back goes; the
+    // router allows that only for moderators.
+    if (path == profileSetup ||
+        path == verification ||
+        path.startsWith('$verification/')) {
+      return moderation;
+    }
+    if (path == moderation) return home;
+    if (path == photoReview) return moderation;
+    if (path.startsWith('$photoReview/')) return photoReview;
+    return home;
+  }
+
   /// Screens for signed-out users.
   static bool isAuthRoute(String path) =>
       path == auth || path.startsWith('$auth/');

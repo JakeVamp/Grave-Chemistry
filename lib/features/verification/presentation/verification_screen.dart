@@ -12,6 +12,7 @@ import '../application/verification_flow_controller.dart';
 import '../application/verification_flow_state.dart';
 import '../application/verification_providers.dart';
 import '../domain/camera_permission.dart';
+import '../../../core/router/back_navigation.dart';
 
 /// Live photo verification, the last onboarding step. Photos come only from
 /// the live camera; there is no photo-library option.
@@ -64,6 +65,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Verify your account'),
+        leading: appBackButton(context),
         automaticallyImplyLeading: false,
         actions: [
           TextButton(

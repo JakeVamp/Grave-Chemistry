@@ -8,6 +8,7 @@ import '../application/profile_photo_providers.dart';
 import '../domain/profile_photo.dart';
 import '../domain/profile_photo_failure.dart';
 import 'widgets/profile_photo_tile.dart';
+import '../../../core/router/back_navigation.dart';
 
 /// Manage public profile photos: add, order, choose the primary, delete.
 /// Every photo is reviewed before anyone else can see it.
@@ -81,6 +82,8 @@ class _ProfilePhotosScreenState extends ConsumerState<ProfilePhotosScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: appBackButton(context),
+        automaticallyImplyLeading: false,
         title: const Text('Profile photos'),
         actions: [
           IconButton(

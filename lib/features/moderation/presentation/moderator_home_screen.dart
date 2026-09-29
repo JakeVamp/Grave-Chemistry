@@ -14,6 +14,7 @@ import '../../profile/application/profile_providers.dart';
 import '../application/moderation_providers.dart';
 import '../domain/moderation_failure.dart';
 import '../domain/moderator_mfa.dart';
+import '../../../core/router/back_navigation.dart';
 
 /// Entry point for moderators. Tools unlock only once this session has
 /// passed two-factor verification, which the database also requires.
@@ -34,6 +35,8 @@ class ModeratorHomeScreen extends ConsumerWidget {
     };
     return Scaffold(
       appBar: AppBar(
+        leading: appBackButton(context),
+        automaticallyImplyLeading: false,
         title: const Text('Moderator tools'),
         actions: [
           // Settings (and its sign-out) are part of the member app, which
