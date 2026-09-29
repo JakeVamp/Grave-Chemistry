@@ -151,6 +151,11 @@ Current migrations, in order:
    audit log, private storage bucket and policies
 4. `20260929100200_anti_abuse.sql`: devices, phones, deletion records,
    sign-up hook
+5. `20260929120000_trust_and_safety.sql`: abuse signals, content scanning,
+   trust levels, Discovery eligibility, reports, blocks, message-abuse
+   primitives, media/duplicate-image foundation, moderation audit
+6. `20260929120100_child_safety.sql`: child-safety cases, account holds,
+   media quarantine, reviewer-only evidence access, evidence bucket
 
 After applying them, check **Project Settings → Data API → Exposed
 schemas** and make sure `private` is **not** listed.
@@ -195,6 +200,14 @@ liveness provider can approve. See
 [docs/security/verification-and-anti-abuse.md](docs/security/verification-and-anti-abuse.md)
 for the full design, trust boundaries, retention and what production
 automation still needs.
+
+## Trust, safety and child safety
+
+Server-side foundations for Discovery and messaging: eligibility checks,
+reports, blocks, spam/scam/commercial-solicitation signals, moderation audit
+and a separate child-safety pipeline. See
+[docs/security/trust-and-safety.md](docs/security/trust-and-safety.md) and
+[docs/security/child-safety.md](docs/security/child-safety.md).
 
 ## Common commands
 

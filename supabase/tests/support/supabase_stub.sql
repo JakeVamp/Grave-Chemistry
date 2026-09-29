@@ -19,7 +19,9 @@ create schema auth;
 create table auth.users (
   id uuid primary key,
   email text unique,
-  phone text unique
+  phone text unique,
+  email_confirmed_at timestamptz,
+  created_at timestamptz default now()
 );
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb)

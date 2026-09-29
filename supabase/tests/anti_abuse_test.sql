@@ -16,7 +16,7 @@ select tests.expect_error('select * from private.accounts', 'permission denied',
 select tests.expect_error($$update private.accounts set status = 'active'$$, 'permission denied', 'users cannot change their status');
 select tests.expect_error(format($$select public.set_account_status('%s', 'active', 'x')$$, :alice), 'not_authorized',
   'users cannot use the moderator status function');
-select tests.expect_error('select * from private.duplicate_account_flags', 'permission denied', 'users cannot read abuse flags');
+select tests.expect_error('select * from private.abuse_signals', 'permission denied', 'users cannot read abuse flags');
 select tests.become('authenticated', :mod, :mod_claims);
 select tests.expect_error(format($$select public.set_account_status('%s', 'active', 'x')$$, :mod), 'own account',
   'moderators cannot change their own status');
@@ -29,7 +29,7 @@ select tests.check((select count(*) = 1 from private.account_status_changes wher
 select private.record_abuse_signal(:alice, 'shared_ip', 'low') from generate_series(1, 20);
 select tests.check((select status = 'pending_verification' from private.accounts where user_id = :alice),
   'shared-IP signals never change account status');
-select tests.check((select count(*) = 1 from private.duplicate_account_flags where user_id = :alice and signal_type = 'shared_ip'),
+select tests.check((select count(*) = 1 from private.abuse_signals where user_id = :alice and signal_type = 'shared_ip'),
   'repeat signals collapse into one open flag for review');
 
 -- ---------------------------------------------------------------- devices
@@ -48,7 +48,7 @@ insert into auth.users (id, email) values ('33333333-3333-3333-3333-333333333333
 select tests.become('authenticated', '33333333-3333-3333-3333-333333333333');
 select public.register_device(:install, 'ios');
 select tests.become_admin();
-select tests.check((select count(*) = 1 from private.duplicate_account_flags where signal_type = 'shared_install'),
+select tests.check((select count(*) = 1 from private.abuse_signals where signal_type = 'shared_install'),
   'a third account on one install is flagged for review');
 select tests.check((select status = 'pending_verification' from private.accounts where user_id = '33333333-3333-3333-3333-333333333333'),
   'shared install alone does not restrict the account');
@@ -57,7 +57,7 @@ select tests.check((select status = 'pending_verification' from private.accounts
 select tests.check(private.link_verified_phone(:alice, '+15551234567') = 'linked', 'alice links a verified phone');
 select tests.check(private.link_verified_phone(:bob, '+15551234567') = 'phone_in_use',
   'the same phone cannot be attached to a second active account');
-select tests.check((select count(*) = 1 from private.duplicate_account_flags where user_id = :bob and signal_type = 'shared_phone'),
+select tests.check((select count(*) = 1 from private.abuse_signals where user_id = :bob and signal_type = 'shared_phone'),
   'attempted phone reuse is flagged');
 select tests.expect_error($$insert into private.phone_identities (user_id, phone_hash) values ('22222222-2222-2222-2222-222222222222', private.hash_identifier('+15551234567'))$$,
   'phone_identities_one_active_account_idx', 'uniqueness is enforced by the database itself');
@@ -95,7 +95,7 @@ update private.account_tombstones set block_recreation_until = now() - interval 
 select tests.check(public.hook_before_user_created('{"metadata": {"ip_address": "198.51.100.2"}, "user": {"email": "alice@example.com"}}') = '{}'::jsonb,
   'recreation is allowed after the cooldown');
 insert into auth.users (id, email) values ('55555555-5555-5555-5555-555555555555', 'alice@example.com');
-select tests.check((select count(*) = 1 from private.duplicate_account_flags
+select tests.check((select count(*) = 1 from private.abuse_signals
   where user_id = '55555555-5555-5555-5555-555555555555' and signal_type = 'account_recreation'),
   'the recreated account is flagged for review');
 select tests.check((select status = 'pending_verification' from private.accounts where user_id = '55555555-5555-5555-5555-555555555555'),
